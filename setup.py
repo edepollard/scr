@@ -47,14 +47,7 @@ setup(
     # Python version requirement
     python_requires='>=3.6',
     
-    # Entry points - creates the 'scr' command
-    entry_points={
-        'console_scripts': [
-            'scr=scr.scr:main',
-        ],
-    },
-    
-    # Scripts - alternative way to install the bin/scr script
+    # Scripts - installs the bin/scr script as executable
     scripts=['bin/scr'],
     
     # Classifiers for PyPI

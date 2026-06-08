@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+#
+# scr - a screen helper script to manage screen sessions with a default 
+#       set of names that are always offered active or not.
+# author: Ed Pollard
+#         I mostly wrote this to try out a few ideas
+#
+import click
+from scr.scr import Screens
+from scr.config import Config
+
+
+@click.command()
+@click.option('-n','--nocolor',is_flag=True, default=False)
+@click.option('-d','--default_sessions', type=str, default="",
+              help="Comma separated list of session strings.")
+@click.pass_context
+def get_args(ctx, **kwargs):
+    config = Config(kwargs)
+    screens = Screens.from_strings(config.default_sessions, args=kwargs)
+    screens.displayMenu()
+
+
+if __name__ == "__main__":
+    get_args()
+
+

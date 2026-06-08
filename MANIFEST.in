@@ -1,0 +1,6 @@
+# This file created with AI Coding Assistant
+include README.md
+include requirements.md
+include LICENSE
+recursive-include bin *
+recursive-include src *.py

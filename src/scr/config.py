@@ -3,8 +3,9 @@ import os
 
 DEFAULT_SESSIONS='dev,dev2,run,log,test'
 CONFIGFILE=os.path.expanduser("~/.scr")
-DEFAULT_CONFIG = { # this is used as a common 
-                   #interface is the configfile is missing
+DEFAULT_CONFIG = {
+                   # this is used as a common interface if
+                   # the configfile is missing
                    'scr':{
                            'color': True,
                            'default_sessions': DEFAULT_SESSIONS,

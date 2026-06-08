@@ -1,0 +1,82 @@
+# scr - Screen Session Manager
+
+A screen helper script to manage GNU screen sessions with a default set of named sessions that are always offered, whether active or not.
+
+## Overview
+
+`scr` provides an interactive menu interface for managing screen sessions, making it easy to:
+- Create new screen sessions
+- Attach to existing sessions
+- Manage a predefined set of session names
+- View session status (active/inactive)
+
+## Features
+
+- **Interactive Menu**: Color-coded menu system for easy navigation
+- **Default Sessions**: Pre-configured session names (dev, dev2, run, log, test)
+- **Session Management**: Automatically detects and displays active screen sessions
+- **Configuration**: Customizable via `~/.scr` config file
+- **Color Support**: ANSI color output (can be disabled with `--nocolor`)
+
+## Running the Script
+
+Currently, the script must be run using the `run` utility script, which sets up the appropriate Python paths for development mode:
+
+```bash
+run scr
+```
+
+### Command Line Options
+
+- `-n, --nocolor` - Disable color output
+- `-d, --default_sessions` - Comma-separated list of session names
+
+### Examples
+
+```bash
+# Run with default settings
+run scr
+
+# Disable colors
+run scr --nocolor
+
+# Use custom session names
+run scr --default_sessions "web,api,db,cache"
+```
+
+## Configuration
+
+Create a configuration file at `~/.scr`:
+
+```ini
+[scr]
+color = True
+default_sessions = dev,dev2,run,log,test
+```
+
+## Project Structure
+
+```
+src/scr/
+├── __init__.py       # Package initializer
+├── config.py         # Configuration management
+├── log.py            # Logging and color output
+└── scr.py            # Core screen session management
+
+bin/
+└── scr               # Main executable entry point
+
+run                   # Utility script to run Python scripts in development mode
+```
+
+## Requirements
+
+See [requirements.md](requirements.md) for detailed dependency information.
+
+## TODO
+
+- [ ] Create setup.py to make this an installable package
+
+## Author
+
+Ed Pollard

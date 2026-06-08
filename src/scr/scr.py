@@ -2,25 +2,6 @@ import subprocess
 import sys
 from .log import Log
 
-
-COLOR_CODES = [
-      {"color":"red","string":"[[R]]","bash":"\033[31m"},
-      {"color":"green","string":"[[G]]","bash":"\033[32m"},
-      {"color":"yellow","string":"[[Y]]","bash":"\033[33m"},
-      {"color":"blue","string":"[[B]]","bash":"\033[34m"},
-      {"color":"purple","string":"[[P]]","bash":"\033[35m"},
-      {"color":"cyan","string":"[[C]]","bash":"\033[36m"},
-      {"color":"end","string":"[[E]]","bash":"\033[0m"}
-]
-
-
-DEFAULT_SESSIONS=['dev','dev2','run','log','test']
-
-DEFAULTS={
-          'nocolor':False,
-         }
-
-
 class ScreenIterator:
     def __init__(self, sessions):
         self.sessions = sessions
@@ -89,7 +70,8 @@ class Screen():
 
 
 class Screens():
-    def __init__(self, sessions=[], args=DEFAULTS):
+    def __init__(self, sessions=[], args=None):
+        self.args = args if args else {'nocolor':Fasle,}
         self._sessions = []
         self.sessions = sessions
         self.mergeActive()

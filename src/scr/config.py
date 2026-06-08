@@ -41,6 +41,7 @@ class Config():
         return self._cf
 
     def get_configfile(self,fname=CONFIGFILE):
+        """Load config file if it exists, otherwise return default configuration."""
         cf = ConfigParser()
         if os.path.isfile(fname):
             cf.read(fname)
@@ -49,7 +50,8 @@ class Config():
         return cf
 
     def get_item(self,section,item,default=None):
+        """Retrieve a config value from the specified section, returning default if not found."""
         if self.cf.has_option(section, item):
-            return self.cf[section][option]
+            return self.cf[section][item]
         return default
 

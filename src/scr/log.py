@@ -14,6 +14,7 @@ class Log:
         self._color = color
 
     def __call__(self, msg):
+        """Allow Log instance to be called directly as a function to print messages."""
         self.stdout(msg)
 
     @property
@@ -29,28 +30,35 @@ class Log:
             raise TypeError(e)
 
     def stdout(self, msg):
+        """Print message to stdout with color encoding applied."""
         print(self.encodeColor(msg), flush=True)
 
     def error(self, msg, fatal=False, error_code=1):
+        """Print error message, optionally exiting the program if fatal."""
         prefix = "Fatal Error:" if fatal else "Error:"
         self.stdout(f"{prefix} {msg}")
         if fatal: exit(error_code)
 
     def fatal(self, msg, error_code=1):
+        """Print fatal error message and exit the program."""
         self.error(msg,fatal=True, error_code=1)
 
     def stripColor(self, textin):
+        """Remove all color markup tokens from text, returning plain string."""
         for color in COLOR_CODES:
             textin = textin.replace(color['string'],"")
         return textin
 
     def enableColor(self):
+        """Enable color output for all subsequent messages."""
         self.color = True
 
     def disableColor(self):
+        """Disable color output for all subsequent messages."""
         self.color = False
 
     def encodeColor(self,textin):
+        """Convert custom color tokens ([[R]], [[G]], etc.) to ANSI codes or strip them if color disabled."""
         if self.color:
             for color in COLOR_CODES:
                 textin = str(textin)

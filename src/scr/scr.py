@@ -80,6 +80,7 @@ class Screen():
         return True if self.pid else False
 
     def run(self):
+        """Attach to existing screen session or create new one, then exit process."""
         sesstr = f"{self.pid}.{self.name}" if self.pid else self.name
         scr_opt = '-dr' if self.is_active else '-S'
         scr_cmd = ['screen',scr_opt,self.longName]
@@ -105,6 +106,7 @@ class Screens():
 
     @classmethod
     def from_strings(cls, items, args=DEFAULTS):
+        """Create Screens instance from string or list of strings representing session names."""
         if isinstance(items, str):
             return cls([Screen(name=items)], args=args)
         elif isinstance(items, list):
@@ -113,6 +115,7 @@ class Screens():
         raise TypeError("Items added by <Screen>.from_string must be strings.")
 
     def runningScreens(self):
+        """Get all currently running GNU Screen sessions by parsing 'screen -ls' output."""
         sessions = []
         ignore_strs=["There are",
                      "There is",
@@ -135,6 +138,7 @@ class Screens():
 
 
     def mergeActive(self):
+        """Merge running screen sessions with configured defaults, updating PIDs and states."""
         for ses in self.runningScreens():
             found = False
             for ds in self.sessions:
@@ -170,12 +174,14 @@ class Screens():
         self._sessions = _new_sessions
 
     def append(self, item):
+        """Add a Screen object to the sessions list."""
         if isinstance(item, Screen):
             self._sessions.append(item)
         else:
             raise TypeError("<Screen>.screens items must <Screen> objects.>")
 
     def displayMenu(self):
+        """Display interactive menu for selecting, creating, or attaching to screen sessions."""
         log = self.log
         while True:
             ch = False

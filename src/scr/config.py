@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 import os
+from scr.log import Log
 
 DEFAULT_SESSIONS='dev,dev2,run,log,test'
 CONFIGFILE=os.path.expanduser("~/.scr")
@@ -21,13 +22,12 @@ class Config():
                            'src',
                            'default_sessions',
                            default=DEFAULT_SESSIONS).split(',')
-
-
         if args:
             if args['nocolor']:
                 self._color = False
             if args['default_sessions']:
                 self._default_sessions = args['default_sessions'].split(',')
+        self._log = Log(color=self.color)
 
     @property
     def default_sessions(self):
@@ -40,6 +40,10 @@ class Config():
     @property
     def cf(self):
         return self._cf
+
+    @property
+    def log(self):
+        return self._log
 
     def get_configfile(self,fname=CONFIGFILE):
         """Load config file if it exists, otherwise return default configuration."""

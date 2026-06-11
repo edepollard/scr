@@ -1,6 +1,7 @@
 import subprocess
 import sys
-from .log import Log
+from .config import Config, DEFAULT_CONFIG
+from .display.scrdisplay import ScrDisplay
 
 class ScreenIterator:
     def __init__(self, sessions):
@@ -70,13 +71,14 @@ class Screen():
 
 
 class Screens():
-    def __init__(self, sessions=[], args=None):
+    def __init__(self, sessions=[], args=None, config=None):
         self.args = args if args else {'nocolor':Fasle,}
         self._sessions = []
         self.sessions = sessions
         self.mergeActive()
         self.color = False if args['nocolor'] else True
-        self._log = Log(color=self.color)
+        self.config = config if config else Config(args=args)
+        self._log = self.config.log
 
     def __iter__(self):
         return ScreenIterator(self.sessions)
@@ -87,7 +89,7 @@ class Screens():
         return f"<Screens {[str(s) for s in self]}"
 
     @classmethod
-    def from_strings(cls, items, args=DEFAULTS):
+    def from_strings(cls, items, args=DEFAULT_CONFIG):
         """Create Screens instance from string or list of strings representing session names."""
         if isinstance(items, str):
             return cls([Screen(name=items)], args=args)
@@ -102,13 +104,16 @@ class Screens():
         ignore_strs=["There are",
                      "There is",
                      "Sockets in",
-                     "Socket in"]
+                     "Socket in",
+                     ]
         screens = subprocess.Popen(['screen', '-ls'], stdout=subprocess.PIPE)
         for scr in screens.stdout:
             scr = scr.decode('utf-8')
             if scr.startswith("No Sockets found in"):
                 break
             if any(sub in scr for sub in ignore_strs):
+                continue
+            if scr.strip() == "":
                 continue
             ses_name=scr.strip().split('.')[1].split('\t')[0]
             ses_state=scr.strip().split('.')[1].split('\t')[1]
@@ -162,46 +167,49 @@ class Screens():
         else:
             raise TypeError("<Screen>.screens items must <Screen> objects.>")
 
+    def createMenu(self, show=False):
+        m = ScrDisplay("Screen Session Menu",[],config=self.config)
+        for idx, screen in enumerate(self.sessions, start=1):
+            detail = ''
+            if screen.is_active:
+                detail = f"{screen.longName: <15} {screen.state}"
+            m.addMenuOption(f"{screen.name: <10} {detail}", screen, idx)
+        m.addMenuControl("New Screen Session",None,"N")
+        m.addMenuControl("Refresh Menu",None,"R")
+        m.addMenuControl("EXIT",None,"E")
+        m.showMenu()
+        return m
+
     def displayMenu(self):
-        """Display interactive menu for selecting, creating, or attaching to screen sessions."""
+        """
+          Display interactive menu for selecting, creating, 
+          or attaching to screen sessions.
+        """
         log = self.log
+        menu = self.createMenu(show=True)
         while True:
-            ch = False
-            log("   ┌─────────────────────┐")
-            log("   │ [[C]]Screen Session Menu[[E]] │")
-            log("   └─────────────────────┘")
-            nc = len(self.sessions)
-            menu = {}
-            for i,c in enumerate(self.sessions, start=1):
-                menu[i]=c
-                detail = ''
-                if c.is_active:
-                    detail = f"{c.longName: <15} {c.state}"
-                mline = f"[[Y]]{i}[[E]]) [[G]]{c.name: <10}[[E]] {detail}"
-                log(mline)
-            log(f"[[P]]N[[E]]) [ [[P]]Create New Screen[[E]] ]")
-            log(f"[[R]]E[[E]]) [ [[R]]EXIT[[E]] ]")
-            cstr=self.log.encodeColor(
-               f"[[[Y]]1[[E]]-[[Y]]{nc}[[E]],[[P]]N[[E]],[[R]]E[[E]]]")
-            choice = input(f"Choose Screen Session\n{cstr}:").lower()
-            if choice == 'e':
+            choice = menu.getMenuChoice().lower()
+            if choice == "e":
                 sys.exit(0)
-            if choice == 'n': # create a new screen
-                new_name = input("New Screen Name: ")
-                if new_name:
-                    new_name = new_name.replace(' ','_')
+            elif choice == 'r':
+                menu.showMenu()
+            elif choice == 'n': # create a new screen
+                new_name = menu.getString()
+                if not all(c.isalpha() or c =='_' for c in new_name):
+                    log.error("[[R]]Screen can only be letters or _ [[E]]")
+                    continue
+                if not new_name:
+                    log.error("[[R]]Empty screen name not allowed.[[E]]\n")
+                    continue
+                else:
                     new_screen = Screen(name=new_name)
                     new_screen.run()
-                else:
-                    log("[[R]]Empty screen name not allowed.[[e]]")
-                    continue
             try:
                 ch = int(choice)
             except:
-                ch = False
                 continue
-            if ch not in menu:
+            if ch not in [c.menu_char for c in s.options]:
                 continue
             else:
-                menu[ch].run()
+                [c.action for c in s.options if ch==c.menu_char][0].run()
 

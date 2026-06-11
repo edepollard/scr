@@ -1,12 +1,12 @@
 
 COLOR_CODES = [
-      {"color":"red","string":"[[R]]","bash":"\033[31m"},
-      {"color":"green","string":"[[G]]","bash":"\033[32m"},
-      {"color":"yellow","string":"[[Y]]","bash":"\033[33m"},
-      {"color":"blue","string":"[[B]]","bash":"\033[34m"},
-      {"color":"purple","string":"[[P]]","bash":"\033[35m"},
-      {"color":"cyan","string":"[[C]]","bash":"\033[36m"},
-      {"color":"end","string":"[[E]]","bash":"\033[0m"}
+      {"color":"red","string":"[[R]]","bash":"\x01\033[31m\x02"},
+      {"color":"green","string":"[[G]]","bash":"\x01\033[32m\x02"},
+      {"color":"yellow","string":"[[Y]]","bash":"\x01\033[33m\x02"},
+      {"color":"blue","string":"[[B]]","bash":"\x01\033[34m\x02"},
+      {"color":"purple","string":"[[P]]","bash":"\x01\033[35m\x02"},
+      {"color":"cyan","string":"[[C]]","bash":"\x01\033[36m\x02"},
+      {"color":"end","string":"[[E]]","bash":"\x01\033[0m\x02"}
 ]
 
 class Log:
@@ -63,7 +63,7 @@ class Log:
             for color in COLOR_CODES:
                 textin = str(textin)
                 textin = textin.replace(color['string'],color['bash'])
-            textin = f"{textin}\033[0m"  # auto terminate color
+            #textin = f"{textin}\033[0m"  # auto terminate color
         else:
             textin = self.stripColor(textin)
         return textin

@@ -11,6 +11,7 @@ This file created with AI Coding Assistant
 """
 
 from setuptools import setup, find_packages
+from configparser import ConfigParser
 import os
 
 # Read the README for long description
@@ -21,35 +22,51 @@ def read_readme():
             return f.read()
     return ''
 
+cfile = os.path.join(os.path.dirname(__file__), 'pkg_config.ini')
+cp = ConfigParser()
+if os.path.exists(cfile):
+   with open(cfile, mode='r', encoding='utf-8') as pkg_config:
+       cp.read_file(pkg_config)
+else:
+   raise FileNotFoundError("File 'pkg_config.ini' missing.")
+
+pkg=cp.get('package','name',fallback='None')
+version=cp.get('package','version',fallback='0.0.0')
+desc=cp.get('package','description',fallback='None')
+author=cp.get('package','author',fallback='None')
+email=cp.get('package','author_email',fallback='None')
+url=cp.get('package','url',fallback='None')
+pkg_license=cp.get('package','liccense',fallback='MIT')
+
 setup(
-    name='scr',
-    version='1.0.0',
-    description='A screen helper script to manage GNU screen sessions',
+    name=pkg,
+    version=version,
+    description=desc,
     long_description=read_readme(),
     long_description_content_type='text/markdown',
-    author='Ed Pollard',
-    author_email='',
-    url='',
-    license='MIT',
-    
+    author=author,
+    author_email=email,
+    url=url,
+    license=pkg_license,
+
     # Package configuration
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
-    
+
     # Include non-Python files
     include_package_data=True,
-    
+
     # Dependencies
     install_requires=[
         'click>=7.0',
     ],
-    
+
     # Python version requirement
     python_requires='>=3.6',
-    
+
     # Scripts - installs the bin/scr script as executable
-    scripts=['bin/scr'],
-    
+    scripts=[f"bin/{pkg}"],
+
     # Classifiers for PyPI
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -69,16 +86,16 @@ setup(
         'Topic :: System :: Systems Administration',
         'Topic :: Utilities',
     ],
-    
+
     # Keywords for searching
     keywords='screen gnu-screen session-manager terminal multiplexer',
-    
+
     # RPM-specific options
     options={
         'bdist_rpm': {
             'requires': 'screen python3-click',
             'group': 'Development/Tools',
-            'vendor': 'Ed Pollard',
+            'vendor': author,
         }
     },
 )

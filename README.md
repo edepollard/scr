@@ -2,13 +2,14 @@
 
 A screen helper script to manage GNU screen sessions with a default set of named sessions that are always offered, whether active or not.
 
+This is obviously heavily over engineered. Much of what is in here is me trying out things I feel I haven't internalized and the best way to do that for me is to use those things in a meaningful way. This repo is one of my training grounds for internalizing concepts.
+
 ## Overview
 
 `scr` provides an interactive menu interface for managing screen sessions, making it easy to:
 - Create new screen sessions
 - Attach to existing sessions
 - Manage a predefined set of session names
-- View session status (active/inactive)
 
 ## Features
 
@@ -54,28 +55,10 @@ color = True
 default_sessions = dev,dev2,run,log,test
 ```
 
-## Project Structure
-
-```
-src/scr/
-├── __init__.py       # Package initializer
-├── config.py         # Configuration management
-├── log.py            # Logging and color output
-└── scr.py            # Core screen session management
-
-bin/
-└── scr               # Main executable entry point
-
-run                   # Utility script to run Python scripts in development mode
-```
-
 ## Requirements
 
 See [requirements.md](requirements.md) for detailed dependency information.
 
-## TODO
-
-- [ ] Create setup.py to make this an installable package
 
 ## Author
 

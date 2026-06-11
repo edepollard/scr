@@ -208,8 +208,8 @@ class Screens():
                 ch = int(choice)
             except:
                 continue
-            if ch not in [c.menu_char for c in s.options]:
+            if ch not in [c.menu_char for c in menu.options]:
                 continue
             else:
-                [c.action for c in s.options if ch==c.menu_char][0].run()
+                [c.action for c in menu.options if ch==c.menu_char][0].run()
 

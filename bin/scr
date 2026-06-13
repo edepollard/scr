@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 # scr - a screen helper script to manage screen sessions with a default 
 #       set of names that are always offered active or not.

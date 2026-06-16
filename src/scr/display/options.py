@@ -1,3 +1,5 @@
+from scr.screen import Screen
+
 class OptionIterator:
     def __init__(self, options):
         self.options = options
@@ -53,7 +55,16 @@ class Option:
         return self._action
     @action.setter
     def action(self, i):
-        self._action = i
+        if isinstance(i, Screen):
+            self._action = i
+        else:
+            raise TypeError("<Option>.action must be of type <Screen>")
+
+    def run(self):
+        if self.action:
+            self.action.run()
+        else:
+            raise Exception("repr(self) has no action.")
 
     @classmethod
     def control(cls, text, action, menu_char):

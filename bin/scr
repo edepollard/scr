@@ -6,7 +6,8 @@
 #         I mostly wrote this to try out a few ideas
 #
 import click
-from scr.scr import Screens
+#from scr.screen import Screens
+from scr.disp import ScrDisplay
 from scr.config import Config
 
 
@@ -14,11 +15,16 @@ from scr.config import Config
 @click.option('-n','--nocolor',is_flag=True, default=False)
 @click.option('-d','--default_sessions', type=str, default="",
               help="Comma separated list of session strings.")
+@click.option('-c','--curses', is_flag=True,
+              help='Set interface to a curses style.')
+@click.option('-t','--text', is_flag=True,
+              help='Set interface to a text style. [Default]')
+
 @click.pass_context
 def get_args(ctx, **kwargs):
     config = Config(kwargs)
-    screens = Screens.from_strings(config.default_sessions, args=kwargs)
-    screens.displayMenu()
+    sd = ScrDisplay("Screen Session Menu",config=config)
+    sd.menu()
 
 
 if __name__ == "__main__":

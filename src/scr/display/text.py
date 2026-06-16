@@ -1,5 +1,7 @@
 from .options import Options, Option
+from scr.screen import Screen
 from scr.config import Config
+import sys
 
 class TextDisplay():
     def __init__(self, config=None):
@@ -11,6 +13,11 @@ class TextDisplay():
                        'options':Options(),
                        'controls':Options(allow_duplicates=False)
                      }
+        self.menu_controls = [
+                          Option('New Screen Session',None,"N"),
+                          Option('Refresh Menu',None,'R'),
+                          Option('EXIT',None,'E')
+                         ]
 
     @property
     def menu_title(self):
@@ -20,7 +27,7 @@ class TextDisplay():
         if isinstance(t, str):
             self._menu['title'] = t
             return
-        raise TypeError("TextDisplay menu_item must be of type 'str'")
+        raise TypeError("TextDisplay title must be of type 'str'")
 
     @property
     def menu_options(self):
@@ -50,6 +57,35 @@ class TextDisplay():
     def get_string(self):
         new_name = input("New Screen Name: ")
         return new_name.replace(' ','_')
+
+    def menu(self):
+        self.display_menu()
+        while True:
+            choice = self.get_choice().lower()
+            if choice == "e":
+                sys.exit(0)
+            elif choice == 'r':
+                self.display_menu()
+            elif choice == 'n': # create a new screen
+                new_name = self.get_string()
+                if not all(c.isalpha() or c =='_' for c in new_name):
+                    log.error("[[R]]Screen can only be letters or _ [[E]]")
+                    continue
+                if not new_name:
+                    log.error("[[R]]Empty screen name not allowed.[[E]]\n")
+                    continue
+                else:
+                    new_screen = Screen(name=new_name)
+                    new_screen.run()
+            try:
+                ch = int(choice)
+            except:
+                continue
+            if ch not in [c.menu_char for c in self.menu_options]:
+                continue
+            else:
+                [c.action for c in self.menu_options if ch==c.menu_char][0].run()
+
 
     def display_menu(self):
         self._display_title()

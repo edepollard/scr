@@ -18,19 +18,25 @@ This is obviously heavily over engineered. Much of what is in here is me trying 
 - **Session Management**: Automatically detects and displays active screen sessions
 - **Configuration**: Customizable via `~/.scr` config file
 - **Color Support**: ANSI color output (can be disabled with `--nocolor`)
+- **Curses Support**: Optional Curses interface via `--curses` or set `style=curses` in `~/.scr`
 
 ## Running the Script
 
-Currently, the script must be run using the `run` utility script, which sets up the appropriate Python paths for development mode:
+The script can be run using the `run` utility script directly from the repo root directory, which sets up the appropriate Python paths for development mode:
 
 ```bash
 run scr
 ```
 
+## Install
+see `INSTALL.md` for installation instructions.
+
 ### Command Line Options
 
 - `-n, --nocolor` - Disable color output
 - `-d, --default_sessions` - Comma-separated list of session names
+- `-t, --text` - Set interface to text style. [DEFAULT]
+- `-c, --curses` - Set interface to curses style.
 
 ### Examples
 
@@ -53,6 +59,7 @@ Create a configuration file at `~/.scr`:
 [scr]
 color = True
 default_sessions = dev,dev2,run,log,test
+style=text
 ```
 
 ## Requirements
@@ -61,5 +68,5 @@ See [requirements.md](requirements.md) for detailed dependency information.
 
 
 ## Author
-
+Ed Pollard
 Ed Pollard

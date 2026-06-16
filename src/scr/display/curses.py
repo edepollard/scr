@@ -80,50 +80,48 @@ class CursesDisplay():
         # Draw title
         title = self.menu_title
         if self.config.color:
-            stdscr.attron(curses.color_pair(2))
+            stdscr.attron(self.CYAN)
         stdscr.addstr(0, w//2 - len(title)//2, title)
         if self.config.color:
-            stdscr.attroff(curses.color_pair(2))
-        stdscr.addstr(1, w//2 - len(title)//2, "=" * len(title))
+            stdscr.attroff(self.CYAN)
+        #stdscr.addstr(1, w//2 - len(title)//2, "=" * len(title))
+        stdscr.addstr(1, 0, "─" * w, curses.A_DIM)
 
         # Draw menu items
         for idx, item in enumerate(self.menu_options, start=1):
             x = w//2 - menu_max_w//2
-            #x = w//2 - len(str(item))//2
             y = h//2 - self.menu_options.length//2 + idx-1
             item_text = mitm.format(menu_char=item.menu_char, text=item.text)
             if idx == current_row and not self.enter_new:
                 # Highlight selected item
-                stdscr.attron(curses.color_pair(1))
-                stdscr.addstr(y, x, item_text)
-                stdscr.attroff(curses.color_pair(1))
+                stdscr.addstr(y, x, item_text, curses.A_REVERSE | curses.A_BOLD)
             else:
                 if self.config.color:
-                    stdscr.attron(curses.color_pair(3))
+                    stdscr.attron(self.GREEN)
                 stdscr.addstr(y, x, item_text)
                 if self.config.color:
-                    stdscr.attroff(curses.color_pair(3))
+                    stdscr.attroff(self.GREEN)
         # Draw New Screen name entry area if needed
         if self.enter_new:
             scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
             prompt="New Screen Name: "
             name= f"{scr_name: <25}"
             if self.config.color:
-                stdscr.attron(curses.color_pair(4))
+                stdscr.attron(self.MAGENTA)
             stdscr.addstr(h-3,w//2 - (len(prompt)+12//2), prompt)
             if self.config.color:
-                stdscr.attroff(curses.color_pair(4))
-            stdscr.attron(curses.color_pair(1))
-            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt), name)
-            stdscr.attroff(curses.color_pair(1))
+                stdscr.attroff(self.MAGENTA)
+            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt),
+                          name, curses.A_REVERSE)
             instructions = "Type a new Screen Name, Enter to accept. "+\
                            "<ESC> to go Back"
         else:
             instructions =  "Use ↑/↓ to navigate, Enter to select, "+\
                             "'N' for New Screen, '<ESC>' to Exit"
         # Draw instructions
-        stdscr.addstr(h-2, w//2 - len(instructions)//2,
+        stdscr.addstr(h-1, w//2 - len(instructions)//2,
                       instructions, curses.A_DIM)
+        stdscr.addstr(h-2, 0, "─" * w, curses.A_DIM)
         stdscr.refresh()
 
 
@@ -135,10 +133,14 @@ class CursesDisplay():
 
         # Only initialize color pair if colors are supported
         if curses.has_colors():
-            curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+            curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN)
             curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
             curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
             curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+            self.HIGHLIGHT = curses.color_pair(1)
+            self.CYAN = curses.color_pair(2)
+            self.GREEN = curses.color_pair(3)
+            self.MAGENTA = curses.color_pair(4)
 
         current_row = 1
         menu_length = self.menu_options.length

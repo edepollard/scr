@@ -79,7 +79,11 @@ class CursesDisplay():
 
         # Draw title
         title = self.menu_title
-        stdscr.addstr(0, w//2 - len(title)//2, title, curses.A_BOLD)
+        if self.config.color:
+            stdscr.attron(curses.color_pair(2))
+        stdscr.addstr(0, w//2 - len(title)//2, title)
+        if self.config.color:
+            stdscr.attroff(curses.color_pair(2))
         stdscr.addstr(1, w//2 - len(title)//2, "=" * len(title))
 
         # Draw menu items
@@ -94,13 +98,23 @@ class CursesDisplay():
                 stdscr.addstr(y, x, item_text)
                 stdscr.attroff(curses.color_pair(1))
             else:
+                if self.config.color:
+                    stdscr.attron(curses.color_pair(3))
                 stdscr.addstr(y, x, item_text)
+                if self.config.color:
+                    stdscr.attroff(curses.color_pair(3))
         # Draw New Screen name entry area if needed
         if self.enter_new:
             scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
-            prompt=f"New Screen Name: {scr_name: <25}"
+            prompt="New Screen Name: "
+            name= f"{scr_name: <25}"
+            if self.config.color:
+                stdscr.attron(curses.color_pair(4))
+            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2), prompt)
+            if self.config.color:
+                stdscr.attroff(curses.color_pair(4))
             stdscr.attron(curses.color_pair(1))
-            stdscr.addstr(h-3,w//2 - len(prompt)//2, prompt)
+            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt), name)
             stdscr.attroff(curses.color_pair(1))
             instructions = "Type a new Screen Name, Enter to accept. "+\
                            "<ESC> to go Back"
@@ -122,6 +136,9 @@ class CursesDisplay():
         # Only initialize color pair if colors are supported
         if curses.has_colors():
             curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+            curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
+            curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
+            curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
         current_row = 1
         menu_length = self.menu_options.length

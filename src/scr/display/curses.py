@@ -116,7 +116,6 @@ class CursesDisplay():
 
         # Draw title
         title = self.menu_title
-        curses.endwin()
         self._addcolorstr(self.TITLE_COLOR, 0, w//2 - len(title)//2, title)
         stdscr.addstr(1, 0, "─" * w, curses.A_DIM)
 

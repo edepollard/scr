@@ -19,7 +19,7 @@ This is obviously heavily over engineered. Much of what is in here is me trying 
 - **Configuration**: Customizable via `~/.scr` config file
 - **Color Support**: ANSI color output (can be disabled with `--nocolor`)
 - **Curses Support**: Optional Curses interface via `--curses` or set `style=curses` in `~/.scr`
-
+- **Customize Menu Colors**: Use `~/.scr` config file to define menu item options
 ## Running the Script
 
 The script can be run using the `run` utility script directly from the repo root directory, which sets up the appropriate Python paths for development mode:
@@ -37,18 +37,24 @@ see `INSTALL.md` for installation instructions.
 - `-d, --default_sessions` - Comma-separated list of session names
 - `-t, --text` - Set interface to text style. [DEFAULT]
 - `-c, --curses` - Set interface to curses style.
+- `-a, --all_colors` - Display list of available colors and exit.
 
 ### Examples
 
 ```bash
 # Run with default settings
-run scr
+?> run scr
 
 # Disable colors
-run scr --nocolor
+?> run scr --nocolor
 
 # Use custom session names
-run scr --default_sessions "web,api,db,cache"
+?> run scr --default_sessions "web,api,db,cache"
+
+# Get available colors to use for config file
+?> run scr --all_colors
+Available Colors: cyan,green,magenta,yellow
+
 ```
 
 ## Configuration
@@ -60,6 +66,9 @@ Create a configuration file at `~/.scr`:
 color = True
 default_sessions = dev,dev2,run,log,test
 style=text
+menu_color=green
+title_color=cyan
+control_color=magenta
 ```
 
 ## Requirements
@@ -68,5 +77,4 @@ See [requirements.md](requirements.md) for detailed dependency information.
 
 
 ## Author
-Ed Pollard
 Ed Pollard

@@ -19,6 +19,8 @@ from scr.config import Config
               help='Set interface to a curses style.')
 @click.option('-t','--text', is_flag=True,
               help='Set interface to a text style. [Default]')
+@click.option('-a','--all_colors',is_flag=True,
+              help='List available colors and exit.')
 
 @click.pass_context
 def get_args(ctx, **kwargs):

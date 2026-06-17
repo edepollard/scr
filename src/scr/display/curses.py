@@ -5,6 +5,13 @@ import curses
 import os
 import sys
 
+BLACK = curses.COLOR_BLACK
+WHITE = curses.COLOR_WHITE
+CYAN = curses.COLOR_CYAN
+GREEN = curses.COLOR_GREEN
+MAGENTA = curses.COLOR_MAGENTA
+YELLOW = curses.COLOR_YELLOW
+
 class CursesDisplay():
     def __init__(self, config=None):
         self.config = config if config else Config()
@@ -12,6 +19,7 @@ class CursesDisplay():
         self.style = "Curses"
         self.enter_new = False
         self.new_screen = ""
+        self._stdscr = False
         self._menu = {
                        'title':None,
                        'options':Options(),
@@ -47,73 +55,95 @@ class CursesDisplay():
     def control(self):
         return Option.control
 
+    @property
+    def stdscr(self):
+        return self._stdscr
+    @stdscr.setter
+    def stdscr(self, s):
+        self._stdscr = s
 
     def __str__(self):
         return self.style
     def __repr__(self):
         return "<class 'CursesDisplay'>"
 
+    def _init_colors(self):
+        colors={
+                'highlight' : self._init_color(1, BLACK, WHITE),
+                'cyan'      : self._init_color(2, CYAN, BLACK),
+                'green'     : self._init_color(3, GREEN, BLACK),
+                'magenta'   : self._init_color(4, MAGENTA, BLACK),
+                'yellow'    : self._init_color(5, YELLOW, BLACK),
+               }
+        self.MENU_COLOR = colors[self.config.menu_color]
+        self.TITLE_COLOR = colors[self.config.title_color]
+        self.CONTROL_COLOR = colors[self.config.control_color]
 
+    def _init_color(self, index, foreground, background):
+        curses.init_pair(index,foreground,background)
+        return curses.color_pair(index)
 
-    def draw_menu(self, stdscr, current_row):
+    def _addcolorstr(self, color, *args, **kwargs):
+        if self.config.color:
+            self.stdscr.attron(color)
+        self.stdscr.addstr(*args, **kwargs)
+        if self.config.color:
+            self.stdscr.attroff(color)
+
+    def _exit_menu_too_long(self, maxh, menu_len):
+        if maxh >= menu_len:
+            return
+        curses.endwin()
+        self.log.error("Screen list longer than available height.\n"+\
+                       "Use -t/--text, reduce number of screen "+\
+                       "sessions, or increase display height to "+\
+                       "use curses display.\n"+\
+                       f"Available Screen Height    : {maxh}\n"+\
+                       f"Screen Session list length : {menu_len}")
+        sys.exit(1)
+
+    def draw_menu(self, current_row):
         """
           Draw the menu with the current selection highlighted
         """
-        mitm = "{menu_char}) {text}" # menu line format
+        #mitm = "{menu_char}) {text}" # menu line formata
+        stdscr = self.stdscr
         stdscr.clear()
-        menu_max_w = max(
-           [len(
-             mitm.format(menu_char=i.menu_char,
-                         text=i.text)) for i in self.menu_options])
+        menu_max_w = max([len(i.text) for i in self.menu_options])
         h, w = stdscr.getmaxyx()
         menu_len = self.menu_options.length
-        if h-5 < menu_len:
-            curses.endwin()
-            self.log.error("Screen list longer than available height.\n"+\
-                           "Use -t/--text, reduce number of screen "+\
-                           "sessions, or increase display height to "+\
-                           "use curses display.\n"+\
-                           f"Available Screen Height    : {h-5}\n"+\
-                           f"Screen Session list length : {menu_len}")
-            sys.exit(1)
+        self._exit_menu_too_long(h-5, menu_len)
 
         # Draw title
         title = self.menu_title
-        if self.config.color:
-            stdscr.attron(self.CYAN)
-        stdscr.addstr(0, w//2 - len(title)//2, title)
-        if self.config.color:
-            stdscr.attroff(self.CYAN)
-        #stdscr.addstr(1, w//2 - len(title)//2, "=" * len(title))
+        curses.endwin()
+        self._addcolorstr(self.TITLE_COLOR, 0, w//2 - len(title)//2, title)
         stdscr.addstr(1, 0, "─" * w, curses.A_DIM)
 
         # Draw menu items
         for idx, item in enumerate(self.menu_options, start=1):
             x = w//2 - menu_max_w//2
             y = h//2 - self.menu_options.length//2 + idx-1
-            item_text = mitm.format(menu_char=item.menu_char, text=item.text)
+            #item_text = f"text={item.text:<{}}"
+            blank=" "
+            item_back = f"[{blank: <{menu_max_w}}]"
+            stdscr.addstr(y, x-1, item_back, curses.A_DIM)
+            item_text = f"{item.text: <{menu_max_w}}"
             if idx == current_row and not self.enter_new:
                 # Highlight selected item
                 stdscr.addstr(y, x, item_text, curses.A_REVERSE | curses.A_BOLD)
             else:
-                if self.config.color:
-                    stdscr.attron(self.GREEN)
-                stdscr.addstr(y, x, item_text)
-                if self.config.color:
-                    stdscr.attroff(self.GREEN)
+                self._addcolorstr(self.MENU_COLOR, y, x, item_text)
         # Draw New Screen name entry area if needed
         if self.enter_new:
             scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
             prompt="New Screen Name: "
             name= f"{scr_name: <25}"
-            if self.config.color:
-                stdscr.attron(self.MAGENTA)
-            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2), prompt)
-            if self.config.color:
-                stdscr.attroff(self.MAGENTA)
+            self._addcolorstr(self.CONTROL_COLOR,
+                              h-3,w//2 - (len(prompt)+12//2), prompt)
             stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt),
                           name, curses.A_REVERSE)
-            instructions = "Back: <ESC>  Type new Screen Name  Accept:<Enter>  "
+            instructions = "Back: <ESC>  Type new Screen Name  Accept:<Enter>"
         else:
             instructions =  "Navigate:↑/↓  Select:<Enter>  "+\
                             "New Screen:<N>  Quit:<ESC>|<Q>"
@@ -123,32 +153,31 @@ class CursesDisplay():
         stdscr.addstr(h-2, 0, "─" * w, curses.A_DIM)
         stdscr.refresh()
 
-
-
     def input_loop(self, stdscr):
         """Main menu loop"""
+        self.stdscr = stdscr
         # Initialize colors
         curses.curs_set(0)  # Hide cursor
-
         # Only initialize color pair if colors are supported
         if curses.has_colors():
-            curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN)
-            curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
-            curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
-            curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-            self.HIGHLIGHT = curses.color_pair(1)
-            self.CYAN = curses.color_pair(2)
-            self.GREEN = curses.color_pair(3)
-            self.MAGENTA = curses.color_pair(4)
+            self._init_colors()
 
         current_row = 1
         menu_length = self.menu_options.length
-        while True:
-            self.draw_menu(stdscr, current_row)
-
+        while True: # main menu draw loop
+            self.draw_menu(current_row)
             # Get user input
             key = stdscr.getch()
-            if self.enter_new and not key == ord('\n'):
+            if key == ord('\n'):  # Enter key
+                stdscr.clear()
+                curses.endwin()
+                if self.enter_new:
+                    if self.new_screen =="":
+                        self.enter_new = False
+                        continue
+                    return Option("new",Screen(self.new_screen),"N")
+                return list(self.menu_options)[current_row-1]
+            elif self.enter_new:
                c = chr(key)
                if key in [curses.KEY_BACKSPACE,8,127,curses.KEY_DC]:
                    self.new_screen = self.new_screen[:-1]
@@ -164,33 +193,21 @@ class CursesDisplay():
                 current_row -= 1
             elif key == curses.KEY_DOWN and current_row < menu_length:
                 current_row += 1
-                #elif key == ord('e') or key == ord('E'):
             elif key in [27, ord('q'), ord('Q')]: #escape==27
-                stdscr.clear()
                 curses.endwin()
                 return False
-                break
-            elif key == ord('n') or key == ord('N'):
+            elif key in [ord('n'), ord('N')]:
                 self.enter_new = True
-            if key == ord('\n'):  # Enter key
-                stdscr.clear()
-                curses.endwin()
-                if self.enter_new:
-                    if self.new_screen =="":
-                        self.enter_new = False
-                        continue
-                    return Option("new",Screen(self.new_screen),"N")
-                return list(self.menu_options)[current_row-1]
 
     def menu(self):
         # Set TERM environment variable if not set
         os.environ.setdefault('ESCDELAY','25')
         if 'TERM' not in os.environ:
             os.environ['TERM'] = 'xterm-256color'
-
         try:
             ret = curses.wrapper(self.input_loop)
             if ret:
+                curses.endwin()
                 ret.action.run()
                 sys.exit()
         except curses.error as e:

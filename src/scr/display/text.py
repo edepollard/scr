@@ -18,6 +18,14 @@ class TextDisplay():
                           Option('Refresh Menu',None,'R'),
                           Option('EXIT',None,'E')
                          ]
+        self._colors = {
+                        "menu_color"   :self.config.get_text_color(
+                                            self.config.menu_color),
+                        "title_color"  :self.config.get_text_color(
+                                            self.config.title_color),
+                        "control_color":self.config.get_text_color(
+                                            self.config.control_color),
+                       }
 
     @property
     def menu_title(self):
@@ -48,6 +56,15 @@ class TextDisplay():
     @property
     def control(self):
         return Option.control
+    @property
+    def menu_color(self):
+        return self._colors['menu_color']
+    @property
+    def title_color(self):
+        return self._colors['title_color']
+    @property
+    def control_color(self):
+        return self._colors['control_color']
 
     def __str__(self):
         return self.style
@@ -97,28 +114,31 @@ class TextDisplay():
     def _display_title(self):
         filler = f"{'':─>{len(self.menu_title)}}"
         self.log(f"   ┌─{filler}─┐")
-        self.log(f"   │ [[C]]{self.menu_title}[[E]] │")
+        self.log(f"   │ {self.title_color}{self.menu_title}[[E]] │")
         self.log(f"   └─{filler}─┘")
 
     def _display_menu_choices(self):
         for i,opt in enumerate(self.menu_options, start=1):
-            self.log(f"[[Y]]{i}[[E]]) [[G]]{opt}[[E]]")
+            self.log(f"{self.menu_color}{i}[[E]]) {self.menu_color}{opt}[[E]]")
         for ctl in self.menu_controls:
-            self.log(f"[[Y]]{ctl.menu_char}[[E]]) [ [[P]]{ctl}[[E]] ]")
+            self.log(f"{self.control_color}{ctl.menu_char}[[E]]) "+\
+                     f"[ {self.control_color}{ctl}[[E]] ]")
 
     @property
     def _menu_prompt(self):
-        choices = []
+        choices = ""
         nopts = self.menu_options.length
         if nopts == 1:
-            choices.append(f"{nopts}")
+            choices=(f"{self.menu_color}{nopts}[[E]]")
         elif nopts == 0:
             pass
         else:
-            choices.append(f"1-{nopts}")
+            choices=(f"{self.menu_color}1-{nopts}[[E]]")
         if  self.menu_controls:
-            choices.extend([c.menu_char for c in self.menu_controls])
-        return self.log.encodeColor(f"Choices [[[Y]]{','.join(choices)}[[E]]]")
+            ctls=f"{self.control_color}"+\
+                 f"{','.join([c.menu_char for c in self.menu_controls])}[[E]]"
+        return self.log.encodeColor(
+               f"Choices [{','.join([choices,ctls])}]")
 
 
 

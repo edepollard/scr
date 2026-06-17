@@ -113,11 +113,10 @@ class CursesDisplay():
                 stdscr.attroff(self.MAGENTA)
             stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt),
                           name, curses.A_REVERSE)
-            instructions = "Type a new Screen Name, Enter to accept. "+\
-                           "<ESC> to go Back"
+            instructions = "Back: <ESC>  Type new Screen Name  Accept:<Enter>  "
         else:
-            instructions =  "Use ↑/↓ to navigate, Enter to select, "+\
-                            "'N' for New Screen, '<ESC>' to Exit"
+            instructions =  "Navigate:↑/↓  Select:<Enter>  "+\
+                            "New Screen:<N>  Quit:<ESC>|<Q>"
         # Draw instructions
         stdscr.addstr(h-1, w//2 - len(instructions)//2,
                       instructions, curses.A_DIM)
@@ -154,7 +153,7 @@ class CursesDisplay():
                if key in [curses.KEY_BACKSPACE,8,127,curses.KEY_DC]:
                    self.new_screen = self.new_screen[:-1]
                    continue
-               elif key == 27:
+               elif key == 27: # escape==27
                    self.new_screen = ""
                    self.enter_new=False
                    continue
@@ -166,7 +165,7 @@ class CursesDisplay():
             elif key == curses.KEY_DOWN and current_row < menu_length:
                 current_row += 1
                 #elif key == ord('e') or key == ord('E'):
-            elif key == 27:
+            elif key in [27, ord('q'), ord('Q')]: #escape==27
                 stdscr.clear()
                 curses.endwin()
                 return False

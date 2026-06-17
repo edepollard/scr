@@ -124,7 +124,6 @@ class CursesDisplay():
         for idx, item in enumerate(self.menu_options, start=1):
             x = w//2 - menu_max_w//2
             y = h//2 - self.menu_options.length//2 + idx-1
-            #item_text = f"text={item.text:<{}}"
             blank=" "
             item_back = f"[{blank: <{menu_max_w}}]"
             stdscr.addstr(y, x-1, item_back, curses.A_DIM)

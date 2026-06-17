@@ -108,7 +108,7 @@ class CursesDisplay():
         """
         #mitm = "{menu_char}) {text}" # menu line formata
         stdscr = self.stdscr
-        stdscr.clear()
+        stdscr.erase()
         menu_max_w = max([len(i.text) for i in self.menu_options])
         h, w = stdscr.getmaxyx()
         menu_len = self.menu_options.length

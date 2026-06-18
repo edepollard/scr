@@ -4,6 +4,8 @@ from scr.config import Config
 import curses
 import os
 import sys
+from socket import gethostname
+from getpass import getuser
 
 BLACK = curses.COLOR_BLACK
 WHITE = curses.COLOR_WHITE
@@ -20,6 +22,9 @@ class CursesDisplay():
         self.enter_new = False
         self.new_screen = ""
         self._stdscr = False
+        self._h = 0
+        self._w = 0
+        self.current_row = 1
         self._menu = {
                        'title':None,
                        'options':Options(),
@@ -62,6 +67,32 @@ class CursesDisplay():
     def stdscr(self, s):
         self._stdscr = s
 
+    @property
+    def h(self):
+        return self._h
+    @h.setter
+    def h(self, i):
+        if not isinstance(i, int):
+            raise TypeError("<ScrMenu>.h must be of type 'int'>")
+        self._h = i
+
+    @property
+    def w(self):
+        return self._w
+    @w.setter
+    def w(self, i):
+        if not isinstance(i, int):
+            raise TypeError("<ScrMenu>.w must be of type 'int'>")
+        self._w = i
+
+    @property
+    def hostname(self):
+        return gethostname().split('.')[0]
+
+    @property
+    def username(self):
+        return getuser()
+
     def __str__(self):
         return self.style
     def __repr__(self):
@@ -90,7 +121,9 @@ class CursesDisplay():
         if self.config.color:
             self.stdscr.attroff(color)
 
-    def _exit_menu_too_long(self, maxh, menu_len):
+    def _exit_menu_too_long(self):
+        maxh = self.h-5
+        menu_len = self.menu_options.length
         if maxh >= menu_len:
             return
         curses.endwin()
@@ -102,54 +135,111 @@ class CursesDisplay():
                        f"Screen Session list length : {menu_len}")
         sys.exit(1)
 
-    def draw_menu(self, current_row):
+    def _set_geometry(self):
+        self.h, self.w = self.stdscr.getmaxyx()
+        if self.h < 25 or self.w < 80:
+            curses.endwin()
+            self.log.error("Terminal too small for curses display. "+\
+                           "Either use -t/--text for textmode or resize "+\
+                            "terminal to at least 80(w)x25(h). "+\
+                            f"Current Size: {self.w}(w)x"+\
+                            f"{self.h}(h)")
+            sys.exit(1)
+
+    def draw_title(self):
+        self.stdscr.addstr(0, 1, f"Host: {self.hostname}", curses.A_DIM)
+        user_str = f"User: {self.username}"
+        self.stdscr.addstr(0,
+                           self.w - len(user_str) - 2,
+                           user_str, curses.A_DIM)
+        self._addcolorstr(self.TITLE_COLOR, 0,
+                          self.w//2 - len(self.menu_title)//2,
+                          self.menu_title)
+        self.stdscr.addstr(1, 0, "─" * self.w, curses.A_DIM)
+
+    def draw_footer(self):
+        self.stdscr.addstr(self.h-2, 0, "─" * self.w, curses.A_DIM)
+        if self.enter_new:
+            instructions =\
+              "Back:<ESC>    Type New Screen Name    Accept:<Enter>"
+            self.stdscr.addstr(self.h-1,
+                               self.w//2 - len(instructions)//2,
+                               instructions, curses.A_DIM)
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 19, "<ESC>")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 59, "<ENTER>")
+        else:
+            instructions =  "Navigate:↑/↓  Select:<Enter>  "+\
+                            "New Screen:N  Quit:<ESC>|Q"
+            self.stdscr.addstr(self.h-1,
+                               self.w//2 - len(instructions)//2,
+                               instructions, curses.A_DIM)
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 21, "↑/↓")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 33, "<ENTER>")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 53, "N")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 61, "<ESC>")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 67, "Q")
+
+    def _draw_ruler(self, y=False):
+        """ dev utility for measuring screen positions """
+        y = y if y else self.h-2 # put in place of footer divider if not y
+        sect=     "0123456789"
+        sect_tens="         1"
+        ruler = f'{sect}'*9 # bigger than 80 which is what i design for
+        ruler_tens = list(f'{sect_tens}'*9)
+        x = 0
+        self.stdscr.addstr(y, 0, ruler[:self.w])
+        for i,c in enumerate(ruler_tens):
+            if c.isdigit():
+                 tens = str(int(c)+x)
+                 x = x + 1
+                 if i < self.w-1:
+                     self._addcolorstr(self.CONTROL_COLOR,
+                                       y, i+1, f"{tens}")
+
+    def draw_menu(self):
         """
           Draw the menu with the current selection highlighted
         """
-        #mitm = "{menu_char}) {text}" # menu line formata
-        stdscr = self.stdscr
-        stdscr.erase()
-        menu_max_w = max([len(i.text) for i in self.menu_options])
-        h, w = stdscr.getmaxyx()
         menu_len = self.menu_options.length
-        self._exit_menu_too_long(h-5, menu_len)
-
-        # Draw title
-        title = self.menu_title
-        self._addcolorstr(self.TITLE_COLOR, 0, w//2 - len(title)//2, title)
-        stdscr.addstr(1, 0, "─" * w, curses.A_DIM)
-
+        menu_max_w = max([len(i.text) for i in self.menu_options])
         # Draw menu items
         for idx, item in enumerate(self.menu_options, start=1):
-            x = w//2 - menu_max_w//2
-            y = h//2 - self.menu_options.length//2 + idx-1
+            x = self.w//2 - menu_max_w//2
+            y = self.h//2 - self.menu_options.length//2 + idx-1
             blank=" "
             item_back = f"[{blank: <{menu_max_w}}]"
-            stdscr.addstr(y, x-1, item_back, curses.A_DIM)
+            self.stdscr.addstr(y, x-1, item_back, curses.A_DIM)
             item_text = f"{item.text: <{menu_max_w}}"
-            if idx == current_row and not self.enter_new:
+            if idx == self.current_row and not self.enter_new:
                 # Highlight selected item
-                stdscr.addstr(y, x, item_text, curses.A_REVERSE | curses.A_BOLD)
+                self.stdscr.addstr(y, x, item_text,
+                                   curses.A_REVERSE | curses.A_BOLD)
             else:
                 self._addcolorstr(self.MENU_COLOR, y, x, item_text)
-        # Draw New Screen name entry area if needed
+
+    def draw_new_entry(self):
         if self.enter_new:
             scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
             prompt="New Screen Name: "
             name= f"{scr_name: <25}"
             self._addcolorstr(self.CONTROL_COLOR,
-                              h-3,w//2 - (len(prompt)+12//2), prompt)
-            stdscr.addstr(h-3,w//2 - (len(prompt)+12//2)+len(prompt),
-                          name, curses.A_REVERSE)
-            instructions = "Back: <ESC>  Type new Screen Name  Accept:<Enter>"
-        else:
-            instructions =  "Navigate:↑/↓  Select:<Enter>  "+\
-                            "New Screen:<N>  Quit:<ESC>|<Q>"
-        # Draw instructions
-        stdscr.addstr(h-1, w//2 - len(instructions)//2,
-                      instructions, curses.A_DIM)
-        stdscr.addstr(h-2, 0, "─" * w, curses.A_DIM)
-        stdscr.refresh()
+                              self.h-3,
+                              self.w//2 - (len(prompt)+12//2), prompt)
+            self.stdscr.addstr(self.h-3,
+                               self.w//2 - (len(prompt)+12//2)+len(prompt),
+                               name, curses.A_REVERSE)
+
+    def draw_screen(self):
+        """ Draw the full screen """
+        self._set_geometry()  # set each loop in case of resize
+        self._exit_menu_too_long() # bail if the menu is too long
+        self.stdscr.erase()
+        self.draw_title()
+        self.draw_menu()
+        self.draw_new_entry()
+        self.draw_footer()
+        #self._draw_ruler()
+        self.stdscr.refresh()
 
     def input_loop(self, stdscr):
         """Main menu loop"""
@@ -160,10 +250,9 @@ class CursesDisplay():
         if curses.has_colors():
             self._init_colors()
 
-        current_row = 1
         menu_length = self.menu_options.length
         while True: # main menu draw loop
-            self.draw_menu(current_row)
+            self.draw_screen()
             # Get user input
             key = stdscr.getch()
             if key == ord('\n'):  # Enter key
@@ -174,7 +263,7 @@ class CursesDisplay():
                         self.enter_new = False
                         continue
                     return Option("new",Screen(self.new_screen),"N")
-                return list(self.menu_options)[current_row-1]
+                return list(self.menu_options)[self.current_row-1]
             elif self.enter_new:
                c = chr(key)
                if key in [curses.KEY_BACKSPACE,8,127,curses.KEY_DC]:
@@ -187,10 +276,10 @@ class CursesDisplay():
                elif c.isalnum() or c in ['_','-']:
                    self.new_screen = f"{self.new_screen}{chr(key)}"
                continue
-            elif key == curses.KEY_UP and current_row > 1:
-                current_row -= 1
-            elif key == curses.KEY_DOWN and current_row < menu_length:
-                current_row += 1
+            elif key == curses.KEY_UP and self.current_row > 1:
+                self.current_row -= 1
+            elif key == curses.KEY_DOWN and self.current_row < menu_length:
+                self.current_row += 1
             elif key in [27, ord('q'), ord('Q')]: #escape==27
                 curses.endwin()
                 return False

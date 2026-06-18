@@ -6,8 +6,7 @@
 #         I mostly wrote this to try out a few ideas
 #
 import click
-#from scr.screen import Screens
-from scr.disp import ScrDisplay
+from scr.menu import ScrMenu
 from scr.config import Config
 
 
@@ -25,7 +24,7 @@ from scr.config import Config
 @click.pass_context
 def get_args(ctx, **kwargs):
     config = Config(kwargs)
-    sd = ScrDisplay("Screen Session Menu",config=config)
+    sd = ScrMenu("Screen Session Menu",config=config)
     sd.menu()
 
 

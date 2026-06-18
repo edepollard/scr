@@ -12,7 +12,7 @@ DISPLAYS = {
 
 
 
-class ScrDisplay():
+class ScrMenu():
     def __init__(self, title=None,
                        options=[], controls=[],
                        config=None):
@@ -44,7 +44,7 @@ class ScrDisplay():
         if isinstance(item, Screens):
            self._screens = item
         else:
-           raise TypeError("<ScrDisplay>.screens must an instance of <Screen>")
+           raise TypeError("<ScrMenu>.screens must an instance of <Screen>")
 
     @property
     def options(self):
@@ -61,16 +61,16 @@ class ScrDisplay():
         if isinstance(text, str):
             self.display.menu_title = text
         else:
-            raise TypeError(f"<ScrDisplay> title must be of type 'str'")
+            raise TypeError(f"<ScrMenu> title must be of type 'str'")
 
     def __str__(self):
         opts = f"options:{self.options}"
         ctls = f"options:{self.controls}"
         ttl =  f"title:'{self.title}'"
         style =f"style: {self.display}"
-        return f"ScrDisplay: {ttl} {opts} {ctls} {style}"
+        return f"ScrMenu: {ttl} {opts} {ctls} {style}"
     def __repr__(self):
-        return f"<ScrDisplay> title:'{self.title}' options:{self.options}>"
+        return f"<ScrMenu> title:'{self.title}' options:{self.options}>"
 
     def addMenuOption(self, text, action, ctl_char):
         self.options.add(

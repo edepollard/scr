@@ -13,6 +13,8 @@ CYAN = curses.COLOR_CYAN
 GREEN = curses.COLOR_GREEN
 MAGENTA = curses.COLOR_MAGENTA
 YELLOW = curses.COLOR_YELLOW
+RED = curses.COLOR_RED
+BLUE = curses.COLOR_BLUE
 
 class CursesDisplay():
     def __init__(self, config=None):
@@ -105,6 +107,8 @@ class CursesDisplay():
                 'green'     : self._init_color(3, GREEN, BLACK),
                 'magenta'   : self._init_color(4, MAGENTA, BLACK),
                 'yellow'    : self._init_color(5, YELLOW, BLACK),
+                'red'       : self._init_color(6, RED, BLACK),
+                'blue'      : self._init_color(7, BLUE, BLACK),
                }
         self.MENU_COLOR = colors[self.config.menu_color]
         self.TITLE_COLOR = colors[self.config.title_color]

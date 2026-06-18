@@ -25,6 +25,8 @@ AVAILABLE_COLORS = {'cyan'    :'[[C]]',
                     'green'   :'[[G]]',
                     'magenta' :'[[P]]',
                     'yellow'  :'[[Y]]',
+                    'red'     :'[[R]]',
+                    'blue'    :'[[B]]',
                    }
 
 

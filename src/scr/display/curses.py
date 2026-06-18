@@ -185,7 +185,7 @@ class CursesDisplay():
             self.stdscr.addstr(self.h-1,
                                self.w//2 - len(instructions)//2,
                                instructions, curses.A_DIM)
-            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 21, "↑/↓")
+            self._addcolorstr(self.CONTROL_COLOR, self.h-1, 20, "↑/↓")
             self._addcolorstr(self.CONTROL_COLOR, self.h-1, 32, "<ENTER>")
             self._addcolorstr(self.CONTROL_COLOR, self.h-1, 52, "N")
             self._addcolorstr(self.CONTROL_COLOR, self.h-1, 60, "<ESC>")

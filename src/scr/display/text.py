@@ -7,7 +7,7 @@ class TextDisplay():
     def __init__(self, config=None):
         self.config = config if config else Config()
         self.log = self.config.log
-        self.style = "TextDisplay"
+        self.style = "text"
         self._menu = {
                        'title':None,
                        'options':Options(),

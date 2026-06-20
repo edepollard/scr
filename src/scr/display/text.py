@@ -8,6 +8,9 @@ class TextDisplay():
         self.config = config if config else Config()
         self.log = self.config.log
         self.style = "text"
+        self._display = {
+                         'title':None,
+                        }
         self._menu = {
                        'title':None,
                        'options':Options(),
@@ -28,12 +31,12 @@ class TextDisplay():
                        }
 
     @property
-    def menu_title(self):
-        return self._menu['title']
-    @menu_title.setter
-    def menu_title(self,t):
+    def display_title(self):
+        return self._display['title']
+    @display_title.setter
+    def display_title(self,t):
         if isinstance(t, str):
-            self._menu['title'] = t
+            self._display['title'] = t
             return
         raise TypeError("TextDisplay title must be of type 'str'")
 
@@ -112,9 +115,9 @@ class TextDisplay():
         return input(f"{self._menu_prompt} ?: ")
 
     def _display_title(self):
-        filler = f"{'':─>{len(self.menu_title)}}"
+        filler = f"{'':─>{len(self.display_title)}}"
         self.log(f"   ┌─{filler}─┐")
-        self.log(f"   │ {self.title_color}{self.menu_title}[[E]] │")
+        self.log(f"   │ {self.title_color}{self.display_title}[[E]] │")
         self.log(f"   └─{filler}─┘")
 
     def _display_menu_choices(self):

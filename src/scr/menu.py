@@ -55,11 +55,11 @@ class ScrMenu():
 
     @property
     def title(self):
-        return self.display.menu_title
+        return self.display.display_title
     @title.setter
     def title(self, text):
         if isinstance(text, str):
-            self.display.menu_title = text
+            self.display.display_title = text
         else:
             raise TypeError(f"<ScrMenu> title must be of type 'str'")
 

@@ -66,6 +66,18 @@ class CursesElement():
         return self._COLORS
 
     @property
+    def config(self):
+        if '_config' not in self.__dict__:
+            self._config = Config()
+        return self._config
+    @config.setter
+    def config(self, cfg):
+        if not isinstance(cfg, Config):
+            raise TypeError(
+               f"'{type(self).__name__}.config' must be an instance of Config")
+        self._config = cfg
+
+    @property
     def colors(self):
         if '_colors' not in self.__dict__:
             self._colors={
@@ -82,6 +94,18 @@ class CursesElement():
     def color_pair(self, index, foreground, background):
         curses.init_pair(index,foreground,background)
         return curses.color_pair(index)
+
+    @property
+    def MENU_COLOR(self):
+        return self.colors[self.config.menu_color]
+
+    @property
+    def TITLE_COLOR(self):
+        return self.colors[self.config.title_color]
+
+    @property
+    def CONTROL_COLOR(self):
+        return self.colors[self.config.control_color]
 
     @property
     def h(self):
@@ -192,27 +216,6 @@ class Menu(CursesElement):
                        'options':Options(),
                        'controls':Options(allow_duplicates=False)
                      }
-        self._MENU_COLOR = None
-        self._TITLE_COLOR = None
-        self._CONTROL_COLOR = None
-
-    @property
-    def MENU_COLOR(self):
-        if not self._MENU_COLOR:
-            self._MENU_COLOR = self.colors[self.config.menu_color]
-        return self._MENU_COLOR
-
-    @property
-    def TITLE_COLOR(self):
-        if not self._TITLE_COLOR:
-            self._TITLE_COLOR = self.colors[self.config.title_color]
-        return self._TITLE_COLOR
-
-    @property
-    def CONTROL_COLOR(self):
-        if not self._CONTROL_COLOR:
-            self._CONTROL_COLOR = self.colors[self.config.control_color]
-        return self._CONTROL_COLOR
 
     @property
     def stdscr(self):
@@ -263,6 +266,24 @@ class Menu(CursesElement):
     def control(self):
         return Option.control
 
+    def menu_input(self):
+       key = self.stdscr.getch()
+       if key == ord('\n'):  # Enter key
+           self.stdscr.clear()
+           curses.endwin()
+           return list(self.options)[self.current_row-1]
+       elif key == curses.KEY_UP and self.current_row > 1:
+           self.current_row -= 1
+       elif key == curses.KEY_DOWN and self.current_row < self.menu_len:
+           self.current_row += 1
+       elif key in [27,ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
+           curses.endwin()
+           exit()
+       elif key in [ord('n'), ord('N')]:
+           self.active = False
+           return "new"
+
+
     def _exit_menu_too_long(self):
         maxh = self.h-5
         menu_len = self.options.length
@@ -303,9 +324,8 @@ class CursesDisplay(CursesElement):
         self.current_row = 1
         self._menu_max_w = None
         self._menu_len = False
-        self.mode = 'menu'
         self.r_arrow = "➤"
-        self._scrmenu = Menu(config=self.config)
+        self._main_menu = False
         self._display = {
                         'title':None,
                         }
@@ -321,22 +341,24 @@ class CursesDisplay(CursesElement):
         raise TypeError("CursesDisplay title must be of type 'str'")
 
     @property
-    def scrmenu(self):
-        return self._scrmenu
+    def main_menu(self):
+        if not self._main_menu:
+            self._main_menu = Menu(config=self.config)
+        return self._main_menu
 
     @property
     def menu_options(self):
-        return self.scrmenu.options
+        return self.main_menu.options
     @menu_options.setter
     def menu_options(self,opts):
-        self.scrmenu.options=opts
+        self.main_menu.options=opts
 
     @property
     def menu_controls(self):
-        return self.scrmenu.menu_controls
+        return self.main_menu.menu_controls
     @menu_controls.setter
     def menu_controls(self,opts):
-        self.scrmenu.controls=opts
+        self.main_menu.controls=opts
 
     @property
     def option(self):
@@ -344,7 +366,6 @@ class CursesDisplay(CursesElement):
     @property
     def control(self):
         return Option.control
-
 
     @property
     def hostname(self):
@@ -354,16 +375,39 @@ class CursesDisplay(CursesElement):
     def username(self):
         return getuser()
 
+    @property
+    def modes(self):
+        if '_modes'  not in self.__dict__:
+            self._modes = {'new','menu'}
+        return self._modes
+    @modes.setter
+    def modes(self, new_modes):
+        if type(new_modes) not in [list,tuple,dict]:
+            raise ValueError(
+             f"'{type(self).__name__}.modes must be one of [list,tuple,dict]'")
+        self._modes = {i for i in new_modes}
+
+    @property
+    def mode(self):
+        if '_mode' not in self.__dict__:
+            self._mode = 'menu'
+        return self._mode
+    @mode.setter
+    def mode(self, m):
+        if m not in self.modes:
+            raise ValueError(
+                   f"'{type(self).__name__}.mode must be one of {self.modes}'")
+        if m == 'menu':
+            self._mode = 'menu'
+            self.main_menu.active = True
+        if m == 'new':
+            self._mode = 'new'
+            self.main_menu.active = False
+
     def __str__(self):
         return self.style
     def __repr__(self):
         return "<class 'CursesDisplay'>"
-
-    def init_user_colors(self):
-        self.MENU_COLOR = self.colors[self.config.menu_color]
-        self.TITLE_COLOR = self.colors[self.config.title_color]
-        self.CONTROL_COLOR = self.colors[self.config.control_color]
-
 
     def draw_title(self):
         user_str = f"User: {self.username}"
@@ -372,7 +416,6 @@ class CursesDisplay(CursesElement):
                 [0, 1, f"Host: {self.hostname}"],
                 [0, user_str_start, f"User: {self.username}"]])
         self.addcolorstr(self.TITLE_COLOR, 0, 31, self.display_title)
-
 
     def draw_footer(self):
         if self.mode == 'new':
@@ -399,7 +442,6 @@ class CursesDisplay(CursesElement):
                   [self.h-1, 66, "Q"],
                   [self.h-1, 68, "E"]])
 
-
     def draw_new_entry(self):
         scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
         prompt="New Screen Name: "
@@ -421,7 +463,7 @@ class CursesDisplay(CursesElement):
         self.stdscr.erase()
         self.draw_title()
         self.draw_frame()
-        self.scrmenu.draw_menu()
+        self.main_menu.draw_menu()
         if self.mode == 'new':
             self.draw_new_entry()
         self.draw_footer()
@@ -429,58 +471,44 @@ class CursesDisplay(CursesElement):
         #self.draw_settings()
         self.stdscr.refresh()
 
-    def input_loop(self, stdscr):
+    def new_screen_input(self):
+        key = self.stdscr.getch()
+        if key == ord("\n"):
+            if self.new_screen =="":
+                return 'menu'
+            return Option("new",Screen(self.new_screen),"N")
+        elif key in [curses.KEY_BACKSPACE,8,127,curses.KEY_DC]:
+            self.new_screen = self.new_screen[:-1]
+        elif key == 27: # escape==27
+            self.new_screen = ""
+            return 'menu'
+        elif chr(key).isalnum() or chr(key) in ['_','-']:
+            # [1-9,a-z,A-Z,_,-]
+            if len(self.new_screen) < 25:
+                 self.new_screen = f"{self.new_screen}{chr(key)}"
+
+    def main_loop(self):
         """Main menu loop"""
+        while True:
+            self.draw_screen()
+            if self.mode == 'menu':
+                ret = self.main_menu.menu_input()
+            elif self.mode == 'new':
+                ret = self.new_screen_input()
+            if isinstance(ret, Option):
+                curses.endwin()
+                ret.action.run()
+                sys.exit()
+            if ret in self.modes:
+                self.mode = ret
+
+    def run(self, stdscr):
         self.stdscr = stdscr
-        self.scrmenu.stdscr=stdscr
-        # Initialize colors
+        self.main_menu.stdscr=stdscr
         curses.curs_set(0)  # Hide cursor
         if not curses.has_colors():
             self.config.color=False
-        self.init_user_colors()
-        menu_length = self.scrmenu.menu_len
-        while True: # main menu draw loop
-            self.draw_screen()
-            # Get user input
-            key = stdscr.getch()
-            if key == ord('\n'):  # Enter key
-                if self.mode == 'new':
-                    if self.new_screen =="":
-                        self.mode = 'menu'
-                        self.scrmenu.active = True
-                        continue
-                    return Option("new",Screen(self.new_screen),"N")
-                stdscr.clear()
-                curses.endwin()
-                return list(self.menu_options)[self.current_row-1]
-            elif self.mode == 'new':
-               c = chr(key)
-               if key in [curses.KEY_BACKSPACE,8,127,curses.KEY_DC]:
-                   self.new_screen = self.new_screen[:-1]
-                   continue
-               elif key == 27: # escape==27
-                   self.new_screen = ""
-                   self.mode = 'menu'
-                   self.scrmenu.active = True
-                   continue
-               elif c.isalnum() or c in ['_','-']:
-                   if len(self.new_screen) < 25:
-                        self.new_screen = f"{self.new_screen}{chr(key)}"
-               continue
-            elif key == curses.KEY_UP and self.current_row > 1:
-                if self.mode == 'menu':
-                    self.current_row -= 1
-                    self.scrmenu.current_row -= 1
-            elif key == curses.KEY_DOWN and self.current_row < menu_length:
-                if self.mode == 'menu':
-                    self.current_row += 1
-                    self.scrmenu.current_row += 1
-            elif key in [27,ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
-                curses.endwin()
-                return False
-            elif key in [ord('n'), ord('N')]:
-                self.mode = 'new'
-                self.scrmenu.active = False
+        self.main_loop()
 
     def menu(self):
         # Set TERM environment variable if not set
@@ -488,11 +516,7 @@ class CursesDisplay(CursesElement):
         if 'TERM' not in os.environ:
             os.environ['TERM'] = 'xterm-256color'
         try:
-            ret = curses.wrapper(self.input_loop)
-            if ret:
-                curses.endwin()
-                ret.action.run()
-                sys.exit()
+            ret = curses.wrapper(self.run)
         except curses.error as e:
             traceback.print_exc()
             print(f"\nError: {e}")

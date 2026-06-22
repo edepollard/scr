@@ -483,18 +483,19 @@ class CursesDisplay(CursesElement):
             self.addcolorstr(self.DIM,self.h-3, 60,
                               "<max name length>")
     def draw_settings(self):
-        self.draw_frame(5,5,20,75,self.DIM, fill=True)
+        self.draw_frame(5,13,20,67,self.DIM, fill=True)
         title="Settings"
         self.addcolorstr(self.TITLE_COLOR, 6,36, title)
-        self.addcolorstr(self.colors['white'], 8,7, "Color:")
+        self.addcolorstr(self.colors['white'], 8,17, "Color:")
         c = "On" if self.config.color else "Off"
-        self.addcolorstr(curses.A_BOLD, 8,14, c)
-        self.addcolorstr(self.DIM, 8,20, "Toggle on/off with 'C'")
-        self.addcolorstr(self.CONTROL_COLOR,8,40, "C")
-        self.draw_color_setting(10, 7, 'T', 'title', 'Title', self.TITLE_COLOR)
-        self.draw_color_setting(11, 7, 'M', 'menu', 'Menu', self.MENU_COLOR)
+        self.addcolorstr(curses.A_BOLD, 8,24, c)
+        self.addcolorstr(self.DIM, 8,32, "C to toggle Color On/Off")
+        self.addcolorstr(self.CONTROL_COLOR,8,32, "C")
+
+        self.draw_color_setting(10, 17, 'T', 'title', 'Title', self.TITLE_COLOR)
+        self.draw_color_setting(11, 17, 'M', 'menu', 'Menu', self.MENU_COLOR)
         self.draw_color_setting(
-                          12, 7, 'X', 'control', 'Control', self.CONTROL_COLOR)
+                          12, 17, 'X', 'control', 'Control', self.CONTROL_COLOR)
         if self.settings_color:
             self.draw_color_option(15, 20, 'L', 'cyan', 'Light Blue/Cyan')
             self.draw_color_option(16, 20, 'G', 'green', 'Green')

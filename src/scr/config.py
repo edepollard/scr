@@ -80,6 +80,12 @@ class Config():
     @property
     def color(self):
         return self._color
+    @color.setter
+    def color(self,c):
+        if not isinstance(c, bool):
+            raise TypeError('Config.color must be set to a boolean.')
+        self._color = True if c else False
+
     @property
     def title_color(self):
         return self._title_color

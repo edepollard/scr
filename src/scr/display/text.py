@@ -80,6 +80,7 @@ class TextDisplay():
 
     def menu(self):
         self.display_menu()
+        log = self.log
         while True:
             choice = self.get_choice().lower()
             if choice == "e":

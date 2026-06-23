@@ -475,11 +475,11 @@ class CursesDisplay(CursesElement):
                     [self.h-1, 59, "<ENTER>"]])
         elif self.mode == 'menu':
             self.addcolorstrs(self.DIM,[
-                    [self.h-1,5,'Navigate:'],
-                    [self.h-1,19,'Select:'],
-                    [self.h-1,35,'New Screen:'],
-                    [self.h-1,49,'Settings:'],
-                    [self.h-1,61,'Quit:'],
+                    [self.h-1,5,'NAVIGATE:'],
+                    [self.h-1,19,'SELECT:'],
+                    [self.h-1,35,'NEW SCREEN:'],
+                    [self.h-1,49,'SETTINGS:'],
+                    [self.h-1,61,'QUIT:'],
                     [self.h-1,71,'|'],
                     [self.h-1,73,'|']])
             self.addcolorstrs(self.CONTROL_COLOR,[
@@ -492,8 +492,8 @@ class CursesDisplay(CursesElement):
                     [self.h-1, 74, "E"]])
         else:
             self.addcolorstrs(self.DIM,[
-                    [self.h-1,14,'Back:'],
-                    [self.h-1,55,'Quit:'],
+                    [self.h-1,14,'BACK:'],
+                    [self.h-1,55,'QUIT:'],
                     [self.h-1,61,'|']])
 
             self.addcolorstrs(self.CONTROL_COLOR,[
@@ -513,78 +513,97 @@ class CursesDisplay(CursesElement):
         if len(self.new_screen) >= 25:
             self.addcolorstr(self.DIM,self.h-3, 60,
                               "<max name length>")
-    def draw_settings(self):
-        self.draw_frame(5,13,20,67,self.DIM, fill=True)
-        title="Settings"
-        self.addcolorstr(self.TITLE_COLOR, 6,36, title)
-        self.addcolorstr(self.colors['white'], 8, 17, "Color")
-        self.addcolorstr(self.colors['white'], 8, 25, ":")
-        c = "On" if self.config.color else "Off"
-        self.addcolorstr(curses.A_BOLD, 8,28, c)
-        self.addcolorstr(self.DIM, 8, 40, "O toggle Color On/Off")
-        self.addcolorstr(self.CONTROL_COLOR,8,40, "O")
 
-        self.draw_color_setting(9, 17, 'T', 'title', 'Title', self.TITLE_COLOR)
-        self.draw_color_setting(10, 17, 'M', 'menu', 'Menu', self.MENU_COLOR)
-        self.draw_color_setting(
-                          11, 17, 'C', 'control', 'Control', self.CONTROL_COLOR)
-        self.addcolorstr(self.colors['white'],12,17,'Select')
-        self.addcolorstr(self.colors['white'],12,25,":")
+    def highlight_selection(self,y,x,text,offset=0):
+        ''' Leave 2 charracters to left of x for arrow'''
+        arrow = False
         if not self.config.color:
             select = 'arrow'
         else:
             select = self.config.select
         if select == "arrow":
-            color = self.CONTROL_COLOR|self.REV
-            arrow = f"{self.r_arrow}"
+            arrow = True
             color = self.CONTROL_COLOR|curses.A_BOLD
-            text = "arrow"
-            x = 30
         elif select == "highlight":
-            arrow = ""
             color = self.CONTROL_COLOR|self.REV
-            text = f"highlight"
-            x = 28
+            if offset:
+                x = x - offset
         else:
             color = self.CONTROL_COLOR|self.REV
-            arrow = f"{self.r_arrow}"
-            text = "highlight"
-            x = 30
-        self.addcolorstr(self.CONTROL_COLOR|curses.A_BOLD, 12, 28, arrow)
-        self.addcolorstr(color, 12, x, text)
-        self.addcolorstr(self.DIM, 12, 40, "Z toggle Select Indicator")
-        self.addcolorstr(self.CONTROL_COLOR,12,40, "Z")
-        
-        if self.settings_color:
-            self.draw_color_option(15, 20, 'L', 'cyan', 'Light Blue/Cyan')
-            self.draw_color_option(16, 20, 'G', 'green', 'Green')
-            self.draw_color_option(17, 20, 'Y', 'yellow', 'Yellow')
-            self.draw_color_option(15, 41, 'P', 'magenta', 'Magenta/Purple')
-            self.draw_color_option(16, 41, 'R', 'red', 'Red')
-            self.draw_color_option(17, 41, 'B', 'blue', 'Blue')
-        self.addcolorstr(self.DIM, self.h-1, 36, "Save:")
+            arrow = True
+        if arrow:
+            self.addcolorstr(self.CONTROL_COLOR|curses.A_BOLD,
+                             y, x-2,self.r_arrow)
+        self.addcolorstr(color, y, x, text)
+
+    def draw_settings(self):
+        self.draw_frame(5,13,20,67,self.DIM, fill=True)
+        title="Settings"
+        self.addcolorstr(self.TITLE_COLOR, 6,36, title)
+
+        # Color on/off
+        self.addcolorstr(self.colors['white'], 8, 17, "Color")
+        self.addcolorstr(self.colors['white'], 8, 25, ":")
+        c = "On" if self.config.color else "Off"
+        self.addcolorstr(curses.A_BOLD, 8,28, c)
+        self.draw_control(8,40,'O',"toggle Color On/Off")
+
+        # Color selections
+        self.draw_color_setting(10, 17, 'T', 'title', 'Title',
+                                self.TITLE_COLOR, self.config.title_color)
+        self.draw_color_setting(11, 17, 'M', 'menu', 'Menu',
+                                self.MENU_COLOR, self.config.menu_color)
+        self.draw_color_setting(12, 17, 'C', 'control', 'Control',
+                                self.CONTROL_COLOR, self.config.control_color)
+
+        # toggle srlrct indicator
+        self.addcolorstr(self.colors['white'],14,17,'Select')
+        self.addcolorstr(self.colors['white'],14,25,":")
+        self.highlight_selection(14,30,"Item",offset=2)
+        self.draw_control(14,40,'Z',"toggle Select Indicator")
+
+        # save options
+        self.addcolorstr(self.DIM, self.h-1, 36, "SAVE:")
         self.addcolorstr(self.CONTROL_COLOR, self.h-1, 41, "S")
         if self.disp_saved:
-            self.addcolorstr(self.DIM, 19, 36, "Config Saved!")
+            self.addcolorstr(self.DIM, 19, 31, "< Config Saved >")
             self.disp_saved = False
 
-    def draw_color_setting(self, y, x, key, setting, label, color):
+        # color options display
+        if self.settings_color:
+            self.draw_control(16, 20, 'L', 'Light Blue/Cyan', 'cyan')
+            self.draw_control(17, 20, 'G', 'Green', 'green')
+            self.draw_control(18, 20, 'Y', 'Yellow', 'yellow')
+            self.draw_control(16, 41, 'P', 'Magenta/Purple', 'magenta')
+            self.draw_control(17, 41, 'R', 'Red', 'red')
+            self.draw_control(18, 41, 'B', 'Blue', 'blue')
+
+
+    def draw_color_setting(self, y, x, key, setting, label, color, cname):
         self.addcolorstr(self.colors['white'],y,x,label)
         self.addcolorstr(self.colors['white'],y,x+8,":")
-        self.addcolorstr(color, y, x+11, self.config.title_color)
         if self.settings_color == setting:
-            self.addcolorstr(self.CONTROL_COLOR,y,x+10,self.r_arrow)
+            #self.addcolorstr(self.CONTROL_COLOR,y,x+10,self.r_arrow)
+            self.highlight_selection(y,x+11,cname)
         else:
-            self.addcolorstr(self.DIM,y,x+23,f"{key} change Title Color")
-            self.addcolorstr(self.CONTROL_COLOR,y,x+23,key)
+            self.addcolorstr(color, y, x+11, cname)
+            self.draw_control(y,x+23,key,f"change {label} Color")
 
 
 
-    def draw_color_option(self, y, x, key, color, label):
-            self.addcolorstr(self.DIM, y, x, f"{key} - ")
-            self.addcolorstr(self.CONTROL_COLOR, y, x, key)
-            self.addcolorstr(self.colors[color], y, x+4, label)
-
+    def draw_control(self, y, x, control, label=False, color=False,
+                                sep=':', rev=False):
+            col = self.colors[color] if color else self.DIM
+            if rev:
+                self.addcolorstr(self.DIM, y, x, f"{label}{sep}")
+                self.addcolorstr(col,y,x,label)
+                self.addcolorstr(self.CONTROL_COLOR,
+                                 y, (x+len(label)+len(sep)), control)
+            else:
+                self.addcolorstr(self.DIM, y, x, f"{control}{sep}")
+                self.addcolorstr(self.CONTROL_COLOR, y, x, control)
+                self.addcolorstr(col,
+                                 y, (x+len(control)+len(sep)), label)
 
 
     def draw_screen(self):

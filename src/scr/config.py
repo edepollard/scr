@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
                            'title_color': 'cyan',
                            'menu_color': 'green',
                            'control_color': 'magenta',
+                           'select':'both',
                          }
                  }
 
@@ -50,6 +51,8 @@ class Config():
                            default=DEFAULT_CONFIG['scr']['menu_color'])
         self.control_color = self.get_item('scr', 'control_color',
                            default=DEFAULT_CONFIG['scr']['control_color'])
+        self._select = self.get_item('scr','select',
+                           default=DEFAULT_CONFIG['scr']['select'])
         self._args = args
 
         # allow args from click/commandline to override config file
@@ -115,6 +118,16 @@ class Config():
         raise Exception(f"'{c}' not in available colors: {AVAILABLE_COLORS}")
 
     @property
+    def select(self):
+        return self._select
+    @select.setter
+    def select(self, s):
+        if s not in ['arrow','highlight','both']:
+            raise ValueError("Config.select must be one of "+\
+                             "['arrow','highlight','both']")
+        self._select = s
+
+    @property
     def cf(self):
         return self._cf
 
@@ -137,6 +150,19 @@ class Config():
     @property
     def args(self):
         return self._args
+
+    def save(self):
+        c = ConfigParser()
+        c['scr']={
+           'color':self.color,
+           'style':self.style,
+           'menu_color':self.menu_color,
+           'title_color':self.title_color,
+           'control_color':self.control_color,
+           'select':self.select,
+        }
+        with open(CONFIGFILE, 'w', encoding='utf-8') as cf:
+            c.write(cf)
 
     def print_available_colors(self):
         ac = [f"{AVAILABLE_COLORS[c]}{c}[[E]]" for c in AVAILABLE_COLORS ]

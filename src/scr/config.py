@@ -155,6 +155,7 @@ class Config():
         c = ConfigParser()
         c['scr']={
            'color':self.color,
+           'default_sessions': ",".join(self.default_sessions),
            'style':self.style,
            'menu_color':self.menu_color,
            'title_color':self.title_color,

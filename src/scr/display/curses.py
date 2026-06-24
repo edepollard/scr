@@ -514,14 +514,11 @@ class CursesDisplay(CursesElement):
             self.addcolorstr(self.DIM,self.h-3, 60,
                               "<max name length>")
 
-    def highlight_selection(self, y, x, text, style=False, nosel=False):
+    def highlight_selection(self, y, x, text, style=False, sel=False):
         ''' Leave 2 charracters to left of x for arrow'''
         arrow = False
         style = style if style else self.config.select
-        if not self.config.color:
-            select = 'arrow'
-        else:
-            select = self.config.select
+        select = self.config.select
 
         if style == "arrow":
             selected = True if style == select else False
@@ -537,72 +534,75 @@ class CursesDisplay(CursesElement):
         if arrow:
             self.addcolorstr(self.CONTROL_COLOR|curses.A_BOLD,
                              y, x-2,self.r_arrow)
-        if selected and not nosel:
+        self.addcolorstr(color, y, x, text)
+        if selected and not sel:
             self.addcolorstr(curses.A_BOLD, y, x+len(text)+1 ,"←")
             self.addcolorstr(curses.A_DIM, y, x+len(text)+3 ,"Selected")
-        self.addcolorstr(color, y, x, text)
 
     def draw_settings(self):
-        self.draw_frame(5,13,20,67,self.DIM, fill=True)
+        self.draw_frame(5,15,18,65,self.DIM, fill=True)
         title="Settings"
         self.addcolorstr(self.TITLE_COLOR, 6,36, title)
 
         # Color on/off
-        y = 7
+        y = 8
+        x = 17
         c = "On" if self.config.color else "Off"
-        self.addcolorstr(self.colors['white'], y, 17, "Color")
-        self.addcolorstr(self.colors['white'], y, 25, ":")
-        self.addcolorstr(curses.A_BOLD, y,28, c)
-        self.draw_control(y,40,'O',"toggle Color On/Off")
+        self.draw_control(y,x,'O'," ", color=self.config.control_color)
+        self.addcolorstr(self.colors['white'], y, x+2, "Color")
+        self.addcolorstr(curses.A_BOLD, y, x+12, c)
 
         # Color selections
-        y = 9
-        self.draw_color_setting(y, 17, 'T', 'title', 'Title',
+        y = 10
+        x = 17
+        self.draw_color_setting(y, x, 'T', 'title', 'Title',
                                 self.TITLE_COLOR, self.config.title_color)
-        self.draw_color_setting(y+1, 17, 'M', 'menu', 'Menu',
+        self.draw_color_setting(y+1, x, 'M', 'menu', 'Menu',
                                 self.MENU_COLOR, self.config.menu_color)
-        self.draw_color_setting(y+2, 17, 'C', 'control', 'Control',
+        self.draw_color_setting(y+2, x, 'C', 'control', 'Control',
                                 self.CONTROL_COLOR, self.config.control_color)
 
         # toggle select indicator
-        y = 12
-        self.addcolorstr(self.colors['white'],y,17,'Select')
-        self.addcolorstr(self.colors['white'],y+1,18,'Indicator')
-        self.draw_control(y,40,'Z',"toggle Select Indicator")
-        self.addcolorstr(self.colors['white'],y+1,28,":")
-        self.highlight_selection(y+1,31,"Item", 'arrow')
-        if self.config.color:
-            self.highlight_selection(y+2,31,"Item", 'both')
-            self.highlight_selection(y+3,31,"Item", 'highlight')
+        y = 15
+        x = 17
+        self.draw_control(y,x,'Z'," ",color=self.config.control_color)
+        self.addcolorstr(self.colors['white'],y,x+2,'Select Style')
+        #if self.config.color:
+        self.highlight_selection(y,x+18,"Arrow and Reverse", 'both')
+        self.highlight_selection(y+1,x+18,"Arrow", 'arrow')
+        #if self.config.color:
+        self.highlight_selection(y+2,x+18,"Reverse", 'highlight')
 
         # save
-        y = 18
+        y = 19
+        x = 33
         self.addcolorstr(self.DIM, self.h-1, 36, "SAVE:")
         self.addcolorstr(self.CONTROL_COLOR, self.h-1, 41, "S")
         if self.disp_saved:
-            self.addcolorstr(self.DIM, y, 31, "< Config Saved >")
+            self.addcolorstr(self.DIM, y, x, "< Config Saved >")
             self.disp_saved = False
 
         # color options display
-        y = 16
+        y = 8
+        x = 39
         if self.settings_color:
-            self.draw_control(y, 20, 'L', 'Light Blue/Cyan', 'cyan')
-            self.draw_control(y+1, 20, 'G', 'Green', 'green')
-            self.draw_control(y+2, 20, 'Y', 'Yellow', 'yellow')
-            self.draw_control(y, 41, 'P', 'Magenta/Purple', 'magenta')
-            self.draw_control(y+1, 41, 'R', 'Red', 'red')
-            self.draw_control(y+2, 41, 'B', 'Blue', 'blue')
+            self.draw_control(y,   x, 'L', 'Light Blue/Cyan', 'cyan')
+            self.draw_control(y+1, x, 'G', 'Green', 'green')
+            self.draw_control(y+2, x, 'Y', 'Yellow', 'yellow')
+            self.draw_control(y+3, x, 'P', 'Magenta/Purple', 'magenta')
+            self.draw_control(y+4, x, 'R', 'Red', 'red')
+            self.draw_control(y+5, x, 'B', 'Blue', 'blue')
 
 
     def draw_color_setting(self, y, x, key, setting, label, color, cname):
-        self.addcolorstr(self.colors['white'],y,x,label)
-        self.addcolorstr(self.colors['white'],y,x+8,":")
         if self.settings_color == setting:
             #self.addcolorstr(self.CONTROL_COLOR,y,x+10,self.r_arrow)
-            self.highlight_selection(y,x+11,cname,nosel=True)
+            self.highlight_selection(y,x+2,label,sel=True)
         else:
-            self.addcolorstr(color, y, x+11, cname)
-            self.draw_control(y,x+23,key,f"change {label} Color")
+            self.addcolorstr(self.colors['white'],y,x+2,label)
+            self.draw_control(y,x,key, color=self.config.control_color)
+            self.addcolorstr(self.DIM, y, x+1,":")
+        self.addcolorstr(color, y, x+12, cname)
 
 
 
@@ -610,15 +610,22 @@ class CursesDisplay(CursesElement):
                                 sep=':', rev=False):
             col = self.colors[color] if color else self.DIM
             if rev:
-                self.addcolorstr(self.DIM, y, x, f"{label}{sep}")
-                self.addcolorstr(col,y,x,label)
-                self.addcolorstr(self.CONTROL_COLOR,
-                                 y, (x+len(label)+len(sep)), control)
+                if label:
+                    self.addcolorstr(self.DIM, y, x, f"{label}{sep}")
+                    self.addcolorstr(col,y,x,label)
+                    self.addcolorstr(self.CONTROL_COLOR,
+                                     y, (x+len(label)+len(sep)), control)
+                else:
+                    self.addcolorstr(col,y,x,control)
+
             else:
-                self.addcolorstr(self.DIM, y, x, f"{control}{sep}")
-                self.addcolorstr(self.CONTROL_COLOR, y, x, control)
-                self.addcolorstr(col,
-                                 y, (x+len(control)+len(sep)), label)
+                if label:
+                    self.addcolorstr(self.DIM, y, x, f"{control}{sep}")
+                    self.addcolorstr(self.CONTROL_COLOR, y, x, control)
+                    self.addcolorstr(col,
+                                     y, (x+len(control)+len(sep)), label)
+                else:
+                    self.addcolorstr(col,y,x,control)
 
 
     def draw_screen(self):
@@ -704,11 +711,11 @@ class CursesDisplay(CursesElement):
 
     def toggle_select(self):
         if self.config.select == 'both':
-            self.config.select = 'highlight'
-        elif self.config.select == 'highlight':
             self.config.select = 'arrow'
-        elif self.config.select == 'arrow':
+        elif self.config.select == 'highlight':
             self.config.select = 'both'
+        elif self.config.select == 'arrow':
+            self.config.select = 'highlight'
         return
 
     def main_loop(self):

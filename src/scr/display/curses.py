@@ -216,7 +216,9 @@ class Menu(CursesElement):
         self.config = config if config else Config()
         self.log = self.config.log
         self._stdscr = stdscr
-        self.current_row = 1
+        self._current_row = 0
+        self._start_row = 0
+        self._selected_item = None
         self._menu_max_w = None
         self._menu_len = False
         self.active=True
@@ -262,7 +264,8 @@ class Menu(CursesElement):
     def menu_max_w(self):
         if not self._menu_max_w or not self.menu_len:
             self._menu_max_w = max([len(i.text) for i in self.options])
-        return self._menu_max_w
+
+        return min(self._menu_max_w, self.w-10)
 
     @property
     def menu_len(self):
@@ -289,8 +292,8 @@ class Menu(CursesElement):
         if key == ord('\n'):  # Enter key
             self.stdscr.clear()
             curses.endwin()
-            return list(self.options)[self.current_row-1]
-        elif key == curses.KEY_UP and self.current_row > 1:
+            return self.selected_item
+        elif key == curses.KEY_UP and self.current_row > 0:
             self.current_row -= 1
         elif key == curses.KEY_DOWN and self.current_row < self.menu_len:
             self.current_row += 1
@@ -304,35 +307,59 @@ class Menu(CursesElement):
             self.active = False
             return "settings"
 
+    @property
+    def start_row(self):
+        return self._start_row
+    @start_row.setter
+    def start_row(self,i):
+        self._start_row = i
+    @property
+    def current_row(self):
+        return self._current_row
+    @current_row.setter
+    def current_row(self, i):
+        if i < 0:
+            self._current_row = 0
+        if i >= self.menu_len:
+            self._current_row = self.menu_len-1
+        else:
+            self._current_row = i
+        if self._current_row < self.start_row:
+            self.start_row = self._current_row
+        if self._current_row >= self.start_row + self.h - 7:
+            self.start_row = self.current_row  - self.h + 8
 
-    def _exit_menu_too_long(self):
-        maxh = self.h-5
-        menu_len = self.options.length
-        if maxh >= menu_len:
-            return
-        curses.endwin()
-        self.log.error("Screen list longer than available height.\n"+\
-                       "Use -t/--text, reduce number of screen "+\
-                       "sessions, or increase display height to "+\
-                       "use curses display.\n"+\
-                       f"Available Screen Height    : {maxh}\n"+\
-                       f"Screen Session list length : {menu_len}")
-        sys.exit(1)
+    @property
+    def selected_item(self):
+        return self._selected_item
+    @selected_item.setter
+    def selected_item(self, i):
+        self._selected_item = i
 
     def draw_menu(self):
         """
           Draw the menu with the current selection highlighted
         """
-        self._exit_menu_too_long()
+        _y = self.h//2 - min(self.h-7,self.menu_len)//2
         x = self.w//2 - self.menu_max_w//2
-        for idx, item in enumerate(self.options, start=1):
-            y = self.h//2 - self.menu_len//2 + idx-1
+        #self.draw_frame(_y-1,x-1,
+        #                _y+(min(self.h-7,self.menu_len)),x+self.menu_max_w)
+        opts = [i for i in self.options]
+        selected_item=None
+        for i in range(min(self.menu_len,self.h - 7)):
+            idx = self.start_row + i
+            if idx >= self.menu_len:
+                break
+            y = _y + i
+            item = opts[idx]
             item_text = f"{item.text: <{self.menu_max_w}}"
+            item_text = item_text[:self.w-10]
             if not self.config.color:
                 select = 'arrow'
             else:
                 select = self.select
             if idx == self.current_row and self.active:
+                self.selected_item = item
                 # Highlight selected item
                 if select == "arrow":
                     color = self.CONTROL_COLOR|curses.A_BOLD
@@ -354,7 +381,11 @@ class Menu(CursesElement):
                 self.addcolorstr(color, y, x,text)
             else:
                 self.addcolorstr(self.MENU_COLOR, y, x, item_text)
-
+        if self.start_row+self.h-7 < self.menu_len:
+            self.addcolorstr(self.DIM,
+                             _y+(min(self.h-7,self.menu_len)-1),x-3, "▼")
+        if self.start_row > 0:
+            self.addcolorstr(self.DIM, _y, x-3, "▲")
 
 class CursesDisplay(CursesElement):
     def __init__(self, config=None):

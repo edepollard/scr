@@ -61,7 +61,8 @@ class Screen():
         return True if self.pid else False
 
     def run(self):
-        """Attach to existing screen session or create new one, then exit process."""
+        """Attach to existing screen session or create new one,
+           then exit process."""
         sesstr = f"{self.pid}.{self.name}" if self.pid else self.name
         scr_opt = '-dr' if self.is_active else '-S'
         scr_cmd = ['screen',scr_opt,self.longName]
@@ -75,7 +76,7 @@ class Screens():
         self.config = config if config else Config(args=args)
         self.color = self.config.color # move calls to this to config.color
         self._log = self.config.log
-        self.sessions = sessions
+        self._default = sessions
         self.mergeActive()
 
     def __iter__(self):
@@ -88,7 +89,8 @@ class Screens():
 
     @classmethod
     def with_defaults(cls, config=None):
-        """Create Screens instance from string or list of strings representing session names."""
+        """Create Screens instance from string or list of strings
+           representing session names."""
         config = config if config else Config()
         items = config.default_sessions
         if isinstance(items, str):
@@ -100,7 +102,8 @@ class Screens():
         raise TypeError("Items added by <Screen>.from_string must be strings.")
 
     def runningScreens(self):
-        """Get all currently running GNU Screen sessions by parsing 'screen -ls' output."""
+        """Get all currently running GNU Screen sessions by parsing 
+           'screen -ls' output."""
         sessions = []
         ignore_strs=["There are",
                      "There is",
@@ -126,17 +129,13 @@ class Screens():
 
 
     def mergeActive(self):
-        """Merge running screen sessions with configured defaults, updating PIDs and states."""
+        """Merge running screen sessions with configured defaults,
+           updating PIDs and states."""
         for ses in self.runningScreens():
-            found = False
-            for ds in self.sessions:
-                if ds.name == ses.name and not ds.pid:
-                    ds.pid = int(ses.pid)
-                    ds.state = ses.state
-                    found = True
-                    break
-            if not found:
-                self.sessions.append(ses)
+            self.append(ses)
+        s_names = [s.name for s in self.sessions]
+        [self.append(s) for s in self._default if s.name not in s_names]
+
     @property
     def log(self):
         return self._log
@@ -155,17 +154,27 @@ class Screens():
                     _new_sessions.append(i)
                 else:
                     raise TypeError(
-                         "<Screens>.sessions all have to be of type <Screen>")
+                         f"'{self.__class__.__name__}.sessions' "+\
+                         "must be <Screen>")
         else:
            raise TypeError(
-             "<Screen>.sessions must be <Screen> or list of <Screen> objects.")
-        self._sessions = _new_sessions
+             f"{self.__class__.__name__}.sessions must be "+\
+             "<Screen> or list of <Screen>.")
+        self._sessions =  _new_sessions
 
     def append(self, item):
         """Add a Screen object to the sessions list."""
         if isinstance(item, Screen):
             self._sessions.append(item)
         else:
-            raise TypeError("<Screen>.screens items must <Screen> objects.>")
+            raise TypeError(f"{self.__class__.__name__}.screens "+\
+                            "items must <Screen> objects.>")
 
+    def insert(self, item):
+        """Insert a Screen object to the beginning of thesessions list."""
+        if isinstance(item, Screen):
+            self._sessions.insert(0,item)
+        else:
+            raise TypeError(f"{self.__class__.__name__}.screens "+\
+                            "items must <Screen> objects.>")
 

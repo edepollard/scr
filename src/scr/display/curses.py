@@ -2,6 +2,7 @@ from .options import Options, Option
 from scr.screen import Screen
 from scr.config import Config
 import curses
+from curses import textpad
 import os
 import sys
 from socket import gethostname
@@ -452,7 +453,7 @@ class CursesDisplay(CursesElement):
     @property
     def modes(self):
         if '_modes'  not in self.__dict__:
-            self._modes = {'new','menu','settings'}
+            self._modes = {'new','menu','settings','default_sessions'}
         return self._modes
     @modes.setter
     def modes(self, new_modes):
@@ -479,6 +480,9 @@ class CursesDisplay(CursesElement):
             self.main_menu.active = False
         if m == 'settings':
             self._mode = 'settings'
+            self.main_menu.active = False
+        if m == 'default_sessions':
+            self._mode = 'default_sessions'
             self.main_menu.active = False
 
     def __str__(self):
@@ -532,6 +536,17 @@ class CursesDisplay(CursesElement):
                     [self.h-1, 41, "S"],
                     [self.h-1, 60, "Q"],
                     [self.h-1, 62, "E"]])
+        elif self.mode == 'default_sessions':
+            self.addcolorstrs(self.DIM,[
+                    [self.h-1,2,'CANCEL:'],
+                    [self.h-1,18,'ACCEPT:'],
+                    [self.h-1,36,'TYPE COMMA SEPARATED LIST'],
+                    [self.h-1,65,'QUIT:']])
+
+            self.addcolorstrs(self.CONTROL_COLOR,[
+                    [self.h-1, 9, "<ESC>"],
+                    [self.h-1, 25, "<ENTER>"],
+                    [self.h-1, 70, "<CTRL-E>"]])
 
     def draw_new_entry(self):
         scr_name = "<EMPTY>" if self.new_screen == "" else self.new_screen
@@ -571,9 +586,47 @@ class CursesDisplay(CursesElement):
             self.addcolorstr(curses.A_BOLD, y, x+len(text)+1 ,"←")
             self.addcolorstr(curses.A_DIM, y, x+len(text)+3 ,"Selected")
 
+    def draw_default_sessions(self):
+        uly, ulx = 5, 15
+        # title
+        y, x = uly+1, ulx+17
+        title="Default Sessions"
+        self.addcolorstr(self.TITLE_COLOR, y, x, title)
+
+        y, x = uly+2, ulx+4
+        self.draw_frame(y,x,y+9,x+42,self.DIM, fill=True)
+        self.draw_footer()
+        self.tp = curses.newwin(8,41,y+1,x+1)
+        self.tp.addstr(0,0, ",".join(self.config.default_sessions))
+        self.stdscr.refresh()
+        self.tp_editor = textpad.Textbox(self.tp)
+        curses.curs_set(1)  # show cursor
+        self.tp_editor.edit(self.editor_input)
+        curses.curs_set(0)  # Hide cursor
+        ds = self.tp_editor.gather().strip()
+        ds = ",".join([s.strip().replace(' ','_')\
+                        for s in ds.split(',') if s.strip()!=''])
+        self.config.default_sessions = ds
+
+    def editor_input(self,key):
+        if key == 5: # ctrl-e
+            curses.endwin()
+            sys.exit()
+        if key == 27: # escape
+            self.tp.erase()
+            self.tp.addstr(0,0,",".join(self.config.default_sessions))
+            return 7 # ctrl-g
+        if key in [8, 127]: # backspace and delete
+            return 8
+        if key == ord("\n"):
+            return 7
+        if any([chr(key).isalnum(),key in [ord(','),ord('-'),ord('_')]]):
+            return key
+        return None
+
     def draw_settings(self):
         uly, ulx = 5, 15
-        self.draw_frame(uly,ulx,uly+13,ulx+50,self.DIM, fill=True)
+        self.draw_frame(uly,ulx,uly+15,ulx+50,self.DIM, fill=True)
 
         # title
         y, x = uly+1, ulx+21
@@ -581,14 +634,14 @@ class CursesDisplay(CursesElement):
         self.addcolorstr(self.TITLE_COLOR, y, x, title)
 
         # Color on/off
-        y, x = uly+3, ulx+2
+        y, x = uly+2, ulx+2
         c = "On" if self.config.color else "Off"
         self.draw_control(y,x,'O'," ", color=self.config.control_color)
         self.addcolorstr(self.colors['white'], y, x+2, "Color")
         self.addcolorstr(curses.A_BOLD, y, x+12, c)
 
         # Color selections
-        y,x = uly+5, ulx+2
+        y,x = uly+4, ulx+2
         self.draw_color_setting(y, x, 'T', 'title', 'Title',
                                 self.TITLE_COLOR, self.config.title_color)
         self.draw_color_setting(y+1, x, 'M', 'menu', 'Menu',
@@ -597,15 +650,24 @@ class CursesDisplay(CursesElement):
                                 self.CONTROL_COLOR, self.config.control_color)
 
         # toggle select indicator
-        y, x = uly+10, ulx+2
+        y, x = uly+9, ulx+2
         self.draw_control(y,x,'Z'," ",color=self.config.control_color)
         self.addcolorstr(self.colors['white'],y,x+2,'Select Style')
         self.highlight_selection(y,x+18,"Arrow and Reverse", 'both')
         self.highlight_selection(y+1,x+18,"Arrow", 'arrow')
         self.highlight_selection(y+2,x+18,"Reverse", 'highlight')
 
+        y, x = uly+13, ulx+2
+        self.draw_control(y,x,'D'," ",color=self.config.control_color)
+        self.addcolorstr(self.colors['white'],y,x+2,'Default Sessions')
+        def_str = ','.join(self.config.default_sessions)
+        if len(def_str) > 34:
+            def_str = def_str[:34]+"..."
+        self.addcolorstr(self.DIM,y+1,x+9, f"[{' '*37}]")
+        self.addcolorstr(self.colors['white'],y+1,x+10,def_str)
+
         # save confirmed message
-        y, x = uly+14, ulx+18
+        y, x = uly+15, ulx+18
         if self.disp_saved:
             self.addcolorstr(self.DIM, y, x, "< Config Saved >")
             self.disp_saved = False
@@ -619,7 +681,6 @@ class CursesDisplay(CursesElement):
             self.draw_control(y+3, x, 'P', 'Magenta/Purple', 'magenta')
             self.draw_control(y+4, x, 'R', 'Red', 'red')
             self.draw_control(y+5, x, 'B', 'Blue', 'blue')
-
 
     def draw_color_setting(self, y, x, key, setting, label, color, cname):
         if self.settings_color == setting:
@@ -667,6 +728,8 @@ class CursesDisplay(CursesElement):
             self.draw_new_entry()
         if self.mode == 'settings':
             self.draw_settings()
+        if self.mode == 'default_sessions':
+            self.draw_default_sessions()
         self.draw_footer()
         #self._draw_ruler()
         self.stdscr.refresh()
@@ -731,9 +794,25 @@ class CursesDisplay(CursesElement):
             self.toggle_select()
         elif key in [ord('s'), ord('S')]:
             self.config.save()
-            self.disp_saved = True 
+            self.disp_saved = True
+        elif key in [ord('d'), ord('D')]:
+            self.mode = 'default_sessions'
         elif key == 27: # escape==27
             return 'menu'
+
+    def default_sessions_input(self):
+        return 'settings'
+        key = self.stdscr.getch()
+        if key in [ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
+            curses.endwin()
+            exit()
+        if key == ord("\n"):
+            #if self.new_default_screens =="":
+            #    return 'settings'
+            return 'settings'
+            return Option("new",Screen(self.new_screen),"N")
+        elif key == 27: # escape==27
+            return 'settings'
 
     def toggle_select(self):
         if self.config.select == 'both':
@@ -754,6 +833,8 @@ class CursesDisplay(CursesElement):
                 ret = self.new_screen_input()
             elif self.mode == 'settings':
                 ret = self.settings_input()
+            elif self.mode == 'default_sessions':
+                ret = self.default_sessions_input()
             if isinstance(ret, Option):
                 curses.endwin()
                 ret.action.run()

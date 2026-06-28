@@ -79,6 +79,9 @@ class Config():
     @property
     def default_sessions(self):
         return self._default_sessions
+    @default_sessions.setter
+    def default_sessions(self, items):
+        self._default_sessions = [i.strip() for i in items.split(',')]
 
     @property
     def color(self):

@@ -566,6 +566,8 @@ class CursesDisplay(CursesElement):
         arrow = False
         style = style if style else self.config.select
         select = self.config.select
+        if sel and not self.config.color:
+            style = 'arrow'
 
         if style == "arrow":
             selected = True if style == select else False
@@ -589,7 +591,7 @@ class CursesDisplay(CursesElement):
     def draw_default_sessions(self):
         uly, ulx = 5, 15
         # title
-        y, x = uly+1, ulx+17
+        y, x = uly+1, ulx+18
         title="Default Sessions"
         self.addcolorstr(self.TITLE_COLOR, y, x, title)
 
@@ -629,7 +631,7 @@ class CursesDisplay(CursesElement):
         self.draw_frame(uly,ulx,uly+15,ulx+50,self.DIM, fill=True)
 
         # title
-        y, x = uly+1, ulx+21
+        y, x = uly, ulx+22
         title="Settings"
         self.addcolorstr(self.TITLE_COLOR, y, x, title)
 
@@ -673,7 +675,7 @@ class CursesDisplay(CursesElement):
             self.disp_saved = False
 
         # color options display
-        y, x = uly+3, ulx+24
+        y, x = uly+2, ulx+24
         if self.settings_color:
             self.draw_control(y,   x, 'L', 'Light Blue/Cyan', 'cyan')
             self.draw_control(y+1, x, 'G', 'Green', 'green')

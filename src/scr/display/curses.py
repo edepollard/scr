@@ -600,6 +600,11 @@ class CursesDisplay(CursesElement):
         self.draw_footer()
         self.tp = curses.newwin(8,41,y+1,x+1)
         self.tp.addstr(0,0, ",".join(self.config.default_sessions))
+
+        y, x = uly+17, ulx-4
+        self.addcolorstr(self.DIM, y, x,
+                "Restart 'scr' required for updated Default Sessions in menu.")
+
         self.stdscr.refresh()
         self.tp_editor = textpad.Textbox(self.tp)
         curses.curs_set(1)  # show cursor
@@ -608,7 +613,9 @@ class CursesDisplay(CursesElement):
         ds = self.tp_editor.gather().strip()
         ds = ",".join([s.strip().replace(' ','_')\
                         for s in ds.split(',') if s.strip()!=''])
+        ds = "".join([c for c in ds if c not in [" ",'\n']])
         self.config.default_sessions = ds
+
 
     def editor_input(self,key):
         if key == 5: # ctrl-e

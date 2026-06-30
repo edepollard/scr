@@ -16,10 +16,11 @@ class OptionIterator:
         return option
 
 class Option:
-    def __init__(self, text, action, menu_char=0):
+    def __init__(self, text, action, menu_char=0, color=False):
         self._text = None
         self._menu_char = menu_char
         self._action = action
+        self._color = color
         self.text = text
 
 
@@ -59,6 +60,13 @@ class Option:
             self._action = i
         else:
             raise TypeError("<Option>.action must be of type <Screen>")
+
+    @property
+    def color(self):
+        return self._color
+    @color.setter
+    def color(self, c):
+        self._color = c
 
     def run(self):
         if self.action:

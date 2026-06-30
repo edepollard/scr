@@ -213,7 +213,8 @@ class CursesElement():
                                        y, i+1, f"{tens}")
 
 class Menu(CursesElement):
-    def __init__(self, stdscr=None, config=None, select=False):
+    def __init__(self, stdscr=None, config=None, select=False,
+                 start_y=None, start_x=None, width=None, height=None):
         self.config = config if config else Config()
         self.log = self.config.log
         self._stdscr = stdscr
@@ -223,6 +224,10 @@ class Menu(CursesElement):
         self._menu_max_w = None
         self._menu_len = False
         self.active=True
+        self._start_y = start_y
+        self._start_x = start_x
+        self._width = width
+        self._height = height
         if select:
              self.select = select
         self._menu = {
@@ -239,10 +244,10 @@ class Menu(CursesElement):
         self._stdscr = s
 
     @property
-    def menu_title(self):
+    def title(self):
         return self._menu['title']
-    @menu_title.setter
-    def menu_title(self,t):
+    @title.setter
+    def title(self,t):
         if isinstance(t, str):
             self._menu['title'] = t
             return
@@ -255,10 +260,10 @@ class Menu(CursesElement):
     def options(self,opts):
         self._menu['options']=Options(opts)
     @property
-    def menu_controls(self):
+    def controls(self):
         return self._menu['controls']
-    @menu_controls.setter
-    def menu_controls(self,opts):
+    @controls.setter
+    def controls(self,opts):
         self._menu['controls']=Options(opts, allow_duplicates=False)
 
     @property
@@ -301,12 +306,7 @@ class Menu(CursesElement):
         elif key in [27,ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
             curses.endwin()
             exit()
-        elif key in [ord('n'), ord('N')]:
-            self.active = False
-            return "new"
-        elif key in [ord('s'), ord('S')]:
-            self.active = False
-            return "settings"
+        return key
 
     @property
     def start_row(self):
@@ -331,30 +331,88 @@ class Menu(CursesElement):
             self.start_row = self.current_row  - self.h + 8
 
     @property
+    def height(self):
+        return self._height
+    @height.setter
+    def height(self, h):
+        if isinstance(h, int) and h >= 0:
+            self._height = h
+        else:
+            raise TypeError("Height must be of type 'int'")
+
+    @property
+    def width(self):
+        return self._width
+    @width.setter
+    def width(self, h):
+        if isinstance(h, int) and h >= 0:
+            self._width = h
+        else:
+            raise TypeError("Width must be of type 'int'")
+
+    @property
+    def start_y(self):
+        return self._start_y
+    @start_y.setter
+    def start_y(self, i):
+        if isinstance(i, int) and i >= 0:
+            self._start_y = i
+        else:
+            raise TypeError("Start_y must be of type 'int'")
+
+    @property
+    def start_x(self):
+        return self._start_x
+    @start_x.setter
+    def start_x(self, i):
+        if isinstance(i, int) and i >= 0:
+            self._start_x = i
+        else:
+            raise TypeError("Start_x must be of type 'int'")
+
+    @property
     def selected_item(self):
         return self._selected_item
     @selected_item.setter
     def selected_item(self, i):
         self._selected_item = i
 
+    @property
+    def s_item(self):
+        return list(self.options)[self.current_row]
+
+    def set_current_row(self,text):
+        for idx, item in enumerate(self.options):
+            if text == item.text:
+                self.current_row = idx
+                self.selected_item = item
+                return
+
     def draw_menu(self):
         """
           Draw the menu with the current selection highlighted
         """
-        _y = self.h//2 - min(self.h-7,self.menu_len)//2
-        x = self.w//2 - self.menu_max_w//2
-        #self.draw_frame(_y-1,x-1,
-        #                _y+(min(self.h-7,self.menu_len)),x+self.menu_max_w)
+
+        if not self.height:
+            self.height = min(self.h-7, self.menu_len)
+        if not self.width:
+            self.width = min(self.menu_max_w, self.w - 6)
+        if not self.start_y:
+            self.start_y = (self.h - self.height)//2
+        if not self.start_x:
+            self.start_x = (self.w - self.menu_max_w)//2 - 3
+
+        y, x  = self.start_y, self.start_x+3
         opts = [i for i in self.options]
         selected_item=None
-        for i in range(min(self.menu_len,self.h - 7)):
+        for i in range(self.height):
             idx = self.start_row + i
             if idx >= self.menu_len:
                 break
-            y = _y + i
+            _y = y + i
             item = opts[idx]
-            item_text = f"{item.text: <{self.menu_max_w}}"
-            item_text = item_text[:self.w-10]
+            item_text = f"{item.text: <{self.width}}"
+            item_text = item_text[:self.width]
             if not self.config.color:
                 select = 'arrow'
             else:
@@ -378,15 +436,19 @@ class Menu(CursesElement):
                     text = f"{item_text}"
                     _x = x-2
                 self.addcolorstr(self.CONTROL_COLOR|curses.A_BOLD,
-                                 y, _x, arrow)
-                self.addcolorstr(color, y, x,text)
+                                 _y, _x, arrow)
+                self.addcolorstr(color, _y, x,text)
             else:
-                self.addcolorstr(self.MENU_COLOR, y, x, item_text)
-        if self.start_row+self.h-7 < self.menu_len:
+                color = self.colors[item.color]\
+                          if item.color else self.MENU_COLOR
+                self.addcolorstr(color, _y, x, item_text)
+
+
+        if self.start_row+self.height < self.menu_len:
             self.addcolorstr(self.DIM,
-                             _y+(min(self.h-7,self.menu_len)-1),x-3, "▼")
+                             y+(self.height-1),x-3, "▼")
         if self.start_row > 0:
-            self.addcolorstr(self.DIM, _y, x-3, "▲")
+            self.addcolorstr(self.DIM, y, x-3, "▲")
 
 class CursesDisplay(CursesElement):
     def __init__(self, config=None):
@@ -401,9 +463,15 @@ class CursesDisplay(CursesElement):
         self._menu_max_w = None
         self._menu_len = False
         self._main_menu = False
+        self._color_menu = False
         self._display = {
                         'title':None,
                         }
+        self.config_colors = {
+                               'title_color': self.config.title_color,
+                               'menu_color': self.config.menu_color,
+                               'control_color': self.config.control_color,
+                             }
 
     @property
     def display_title(self):
@@ -420,6 +488,14 @@ class CursesDisplay(CursesElement):
         if not self._main_menu:
             self._main_menu = Menu(config=self.config)
         return self._main_menu
+
+    @property
+    def color_menu(self):
+        if not self._color_menu:
+            colors = ['cyan','green','yellow','magenta','red','blue']
+            self._color_menu = Menu(config=self.config, stdscr=self.stdscr)
+            self._color_menu.options = [Option(c,c,color=c) for c in colors]
+        return self._color_menu
 
     @property
     def menu_options(self):
@@ -524,7 +600,7 @@ class CursesDisplay(CursesElement):
                     [self.h-1, 66, "<ESC>"],
                     [self.h-1, 72, "Q"],
                     [self.h-1, 74, "E"]])
-        elif self.mode == 'settings':
+        elif self.mode == 'settings' and not self.settings_color:
             self.addcolorstrs(self.DIM,[
                     [self.h-1,14,'BACK:'],
                     [self.h-1,36,'SAVE:'],
@@ -536,6 +612,22 @@ class CursesDisplay(CursesElement):
                     [self.h-1, 41, "S"],
                     [self.h-1, 60, "Q"],
                     [self.h-1, 62, "E"]])
+        elif self.mode == 'settings' and self.settings_color:
+            self.addcolorstrs(self.DIM,[
+                    [self.h-1,4,'BACK:'],
+                    [self.h-1,16,'NAVIGATE COLOR:'],
+                    [self.h-1,36,'SELECT COLOR:'],
+                    [self.h-1,58,'SAVE:'],
+                    [self.h-1,66,'QUIT:'],
+                    [self.h-1,72,'|']])
+
+            self.addcolorstrs(self.CONTROL_COLOR,[
+                    [self.h-1, 9, "<ESC>"],
+                    [self.h-1, 31, "↑/↓"],
+                    [self.h-1, 49, "<ENTER>"],
+                    [self.h-1, 63, "S"],
+                    [self.h-1, 71, "Q"],
+                    [self.h-1, 73, "E"]])
         elif self.mode == 'default_sessions':
             self.addcolorstrs(self.DIM,[
                     [self.h-1,2,'CANCEL:'],
@@ -682,14 +774,14 @@ class CursesDisplay(CursesElement):
             self.disp_saved = False
 
         # color options display
-        y, x = uly+2, ulx+24
+        y, x = uly+1, ulx+24
         if self.settings_color:
-            self.draw_control(y,   x, 'L', 'Light Blue/Cyan', 'cyan')
-            self.draw_control(y+1, x, 'G', 'Green', 'green')
-            self.draw_control(y+2, x, 'Y', 'Yellow', 'yellow')
-            self.draw_control(y+3, x, 'P', 'Magenta/Purple', 'magenta')
-            self.draw_control(y+4, x, 'R', 'Red', 'red')
-            self.draw_control(y+5, x, 'B', 'Blue', 'blue')
+            self.addcolorstr(self.colors['white'],y,x,"Select Color")
+            self.color_menu.start_y = y+1
+            self.color_menu.start_x = x
+            self.color_menu.width = 15
+            self.color_menu.height = 6
+            self.color_menu.draw_menu()
 
     def draw_color_setting(self, y, x, key, setting, label, color, cname):
         if self.settings_color == setting:
@@ -759,32 +851,64 @@ class CursesDisplay(CursesElement):
             if len(self.new_screen) < 25:
                  self.new_screen = f"{self.new_screen}{chr(key)}"
 
-    def set_setting_color(self,key, lc, uc, setting, color):
-        if key in [ord(lc), ord(uc)]:
-            if setting == 'title':
+
+    def set_setting_color(self, setting, color, soft=False):
+        if setting == 'title':
+            if color == "RESET":
+                self.config.title_color = self.config_colors['title_color']
+                return
+            if not soft:
+                self.config_colors['title_color'] = color
+            else:
                 self.config.title_color = color
-            if setting == 'menu':
+        if setting == 'menu':
+            if color == "RESET":
+                self.config.menu_color = self.config_colors['menu_color']
+                return
+            if not soft:
+                self.config_colors['menu_color'] = color
+            else:
                 self.config.menu_color = color
-            if setting == 'control':
+        if setting == 'control':
+            if color == "RESET":
+                self.config.control_color = self.config_colors['control_color']
+                return
+            if not soft:
+                self.config_colors['control_color'] = color
+            else:
                 self.config.control_color = color
-            self.settings_color = False
 
 
-    def assign_color(self, setting, key):
-        self.set_setting_color(key, 'g','G',setting,'green')
-        self.set_setting_color(key, 'y','Y',setting,'yellow')
-        self.set_setting_color(key, 'l','L',setting,'cyan')
-        self.set_setting_color(key, 'b','B',setting,'blue')
-        self.set_setting_color(key, 'r','R',setting,'red')
-        self.set_setting_color(key, 'p','P',setting,'magenta')
 
     def settings_input(self):
         key = self.stdscr.getch()
         if self.settings_color:
-            self.assign_color(self.settings_color, key)
-            if key == 27:
+            if key == 27: # escape
+                self.set_setting_color(
+                       self.settings_color,
+                       "RESET")
+                self.color_menu.current_row = 0
                 self.settings_color = False
                 return
+            elif key == ord('\n'):  # Enter key
+                self.set_setting_color(
+                       self.settings_color,
+                       self.color_menu.s_item.color)
+                self.color_menu.current_row = 0
+                self.settings_color = False
+                return
+            elif key == curses.KEY_UP and self.color_menu.current_row > 0:
+                self.color_menu.current_row -= 1
+                self.set_setting_color(
+                       self.settings_color,
+                       self.color_menu.s_item.color, soft=True)
+            elif key == curses.KEY_DOWN and\
+                 self.color_menu.current_row < self.color_menu.menu_len-1:
+                self.color_menu.current_row += 1
+                self.set_setting_color(
+                       self.settings_color,
+                       self.color_menu.s_item.color, soft=True)
+
         if key in [ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
             curses.endwin()
             exit()
@@ -795,10 +919,13 @@ class CursesDisplay(CursesElement):
                 self.config.color=True
         elif key in [ord('t'), ord('T')]:
             self.settings_color = 'title'
+            self.color_menu.set_current_row(self.config.title_color)
         elif key in [ord('m'), ord('M')]:
             self.settings_color = 'menu'
+            self.color_menu.set_current_row(self.config.menu_color)
         elif key in [ord('c'), ord('C')]:
             self.settings_color = 'control'
+            self.color_menu.set_current_row(self.config.control_color)
         elif key in [ord('z'), ord('Z')]:
             self.toggle_select()
         elif key in [ord('s'), ord('S')]:
@@ -809,19 +936,16 @@ class CursesDisplay(CursesElement):
         elif key == 27: # escape==27
             return 'menu'
 
-    def default_sessions_input(self):
-        return 'settings'
-        key = self.stdscr.getch()
-        if key in [ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
-            curses.endwin()
-            exit()
-        if key == ord("\n"):
-            #if self.new_default_screens =="":
-            #    return 'settings'
-            return 'settings'
-            return Option("new",Screen(self.new_screen),"N")
-        elif key == 27: # escape==27
-            return 'settings'
+    def aux_input(self, key):
+        if isinstance(key, Option):
+            return key
+        elif key in [ord('n'), ord('N')]:
+            self.active = False
+            return "new"
+        elif key in [ord('s'), ord('S')]:
+            self.active = False
+            return "settings"
+
 
     def toggle_select(self):
         if self.config.select == 'both':
@@ -838,12 +962,14 @@ class CursesDisplay(CursesElement):
             self.draw_screen()
             if self.mode == 'menu':
                 ret = self.main_menu.menu_input()
+                ret = self.aux_input(ret) # for N-New and S-Settings keys
             elif self.mode == 'new':
                 ret = self.new_screen_input()
             elif self.mode == 'settings':
                 ret = self.settings_input()
             elif self.mode == 'default_sessions':
-                ret = self.default_sessions_input()
+                ret = "settings" # the textpad does some of the screen
+                                 # refreshing and input here
             if isinstance(ret, Option):
                 curses.endwin()
                 ret.action.run()

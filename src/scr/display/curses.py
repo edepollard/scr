@@ -150,7 +150,7 @@ class CursesElement():
             self._exit_screen_bad_size()
 
     def _exit_screen_bad_size(self):
-        curses.endwin()
+        self.exit_curses(terminate=False)
         self.log.error("Terminal too small for curses display. "+\
                        "Either use -t/--text for textmode or resize "+\
                        "terminal to at least 80(w)x25(h). "+\
@@ -211,6 +211,14 @@ class CursesElement():
                  if i < self.w-1:
                      self.addcolorstr(self.CONTROL_COLOR,
                                        y, i+1, f"{tens}")
+    def exit_curses(self, terminate=True):
+        curses.echo()
+        curses.nocbreak()
+        self.stdscr.keypad(False)
+        curses.endwin()
+        if terminate:
+            sys.exit()
+
 
 class Menu(CursesElement):
     def __init__(self, stdscr=None, config=None, select=False,
@@ -297,15 +305,13 @@ class Menu(CursesElement):
         key = self.stdscr.getch()
         if key == ord('\n'):  # Enter key
             self.stdscr.clear()
-            curses.endwin()
             return self.selected_item
         elif key == curses.KEY_UP and self.current_row > 0:
             self.current_row -= 1
         elif key == curses.KEY_DOWN and self.current_row < self.menu_len:
             self.current_row += 1
         elif key in [27,ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
-            curses.endwin()
-            exit()
+            self.exit_curses()
         return key
 
     @property
@@ -711,8 +717,7 @@ class CursesDisplay(CursesElement):
 
     def editor_input(self,key):
         if key == 5: # ctrl-e
-            curses.endwin()
-            sys.exit()
+            self.exit_curses()
         if key == 27: # escape
             self.tp.erase()
             self.tp.addstr(0,0,",".join(self.config.default_sessions))
@@ -910,8 +915,7 @@ class CursesDisplay(CursesElement):
                        self.color_menu.s_item.color, soft=True)
 
         if key in [ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
-            curses.endwin()
-            exit()
+            self.exit_curses()
         elif key in [ord('o'), ord('O')]:
             if self.config.color:
                 self.config.color=False
@@ -971,9 +975,8 @@ class CursesDisplay(CursesElement):
                 ret = "settings" # the textpad does some of the screen
                                  # refreshing and input here
             if isinstance(ret, Option):
-                curses.endwin()
                 ret.action.run()
-                sys.exit()
+                self.exit_curses()
             if ret in self.modes:
                 self.mode = ret
 

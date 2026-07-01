@@ -236,6 +236,7 @@ class Menu(CursesElement):
         self._start_x = start_x
         self._width = width
         self._height = height
+        self._item_bold = False
         if select:
              self.select = select
         self._menu = {
@@ -313,6 +314,18 @@ class Menu(CursesElement):
         elif key in [27,ord('q'),ord('Q'),ord('e'),ord('E')]: #escape==27
             self.exit_curses()
         return key
+
+    @property
+    def item_bold(self):
+        if not self._item_bold:
+            def nobold(v,color):
+                return color
+            return nobold
+        else:
+            return self._item_bold
+    @item_bold.setter
+    def item_bold(self, f):
+        self._item_bold = f
 
     @property
     def start_row(self):
@@ -447,6 +460,7 @@ class Menu(CursesElement):
             else:
                 color = self.colors[item.color]\
                           if item.color else self.MENU_COLOR
+                color = self.item_bold(item, color)
                 self.addcolorstr(color, _y, x, item_text)
 
 
@@ -571,6 +585,13 @@ class CursesDisplay(CursesElement):
         return self.style
     def __repr__(self):
         return "<class 'CursesDisplay'>"
+
+    @staticmethod
+    def bold_if_pid(opt, color):
+        if isinstance(opt.action, Screen):
+            if opt.action.pid:
+                return color|curses.A_BOLD
+        return color
 
     def draw_title(self):
         user_str = f"User: {self.username}"
@@ -983,6 +1004,7 @@ class CursesDisplay(CursesElement):
     def run(self, stdscr):
         self.stdscr = stdscr
         self.main_menu.stdscr=stdscr
+        self.main_menu.item_bold = self.bold_if_pid
         curses.curs_set(0)  # Hide cursor
         if not curses.has_colors():
             self.config.color=False

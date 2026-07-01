@@ -6,6 +6,7 @@ COLOR_CODES = [
       {"color":"blue","string":"[[B]]","bash":"\x01\033[34m\x02"},
       {"color":"purple","string":"[[P]]","bash":"\x01\033[35m\x02"},
       {"color":"cyan","string":"[[C]]","bash":"\x01\033[36m\x02"},
+      {"color":"white","string":"[[W]]","bash":"\x01\033[37m\x02"},
       {"color":"end","string":"[[E]]","bash":"\x01\033[0m\x02"}
 ]
 

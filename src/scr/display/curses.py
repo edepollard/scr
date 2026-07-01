@@ -2,45 +2,14 @@ from .options import Options, Option
 from scr.screen import Screen
 from scr.config import Config
 import curses
-from curses import textpad
+import curses.textpad
+#from curses import textpad
 import os
 import sys
 from socket import gethostname
 from getpass import getuser
 import traceback
 
-
-class YX():
-    def __init__(self, y=0, x=0):
-        self._y = 0
-        self._x = 0
-        if y: self.y = y
-        if x: self.x = x
-
-    def __str__(self):
-        return f"y:{self.y}, x:{self.x}"
-    def __repr__(self):
-        return f"<YX y:{self.y}, x:{self.x}>"
-    def __call__(self):
-        return self.y, self.x
-
-    @property
-    def y(self):
-        return self._y
-    @y.setter
-    def y(self,i):
-        if not isinstance(i, int) or i < 0:
-            raise TypeError("YX.y must be an int greater than -1.")
-        self._y = i
-
-    @property
-    def x(self):
-        return self._x
-    @x.setter
-    def x(self,i):
-        if not isinstance(i, int) or i < 0:
-            raise TypeError("YX.x must be an int greater than -1.")
-        self._x = i
 
 class CursesElement():
 
@@ -82,7 +51,6 @@ class CursesElement():
     def colors(self):
         if '_colors' not in self.__dict__:
             self._colors={
-                'highlight' : self.color_pair(1, self.BLACK, self.WHITE),
                 'cyan'      : self.color_pair(2, self.CYAN, self.BLACK),
                 'green'     : self.color_pair(3, self.GREEN, self.BLACK),
                 'magenta'   : self.color_pair(4, self.MAGENTA, self.BLACK),
@@ -112,6 +80,14 @@ class CursesElement():
     @property
     def r_arrow(self):
         return "➤"
+
+    @property
+    def d_scroll_arrow(self):
+        return "▼"
+
+    @property
+    def u_scroll_arrow(self):
+        return "▲"
 
     @property
     def h(self):
@@ -222,7 +198,8 @@ class CursesElement():
 
 class Menu(CursesElement):
     def __init__(self, stdscr=None, config=None, select=False,
-                 start_y=None, start_x=None, width=None, height=None):
+                 start_y=None, start_x=None, width=None, height=None,
+                 scrollbar=True, scrollarrows=True):
         self.config = config if config else Config()
         self.log = self.config.log
         self._stdscr = stdscr
@@ -237,6 +214,8 @@ class Menu(CursesElement):
         self._width = width
         self._height = height
         self._item_bold = False
+        self._scrollbar = scrollbar
+        self._scrollarrows = scrollarrows
         if select:
              self.select = select
         self._menu = {
@@ -286,7 +265,7 @@ class Menu(CursesElement):
     def menu_len(self):
         if not self._menu_len:
             self._menu_len = self.options.length
-        return self._menu_len
+        return int(self._menu_len)
 
     @property
     def option(self):
@@ -346,11 +325,13 @@ class Menu(CursesElement):
             self._current_row = i
         if self._current_row < self.start_row:
             self.start_row = self._current_row
-        if self._current_row >= self.start_row + self.h - 7:
-            self.start_row = self.current_row  - self.h + 8
+        elif self._current_row >= self.start_row + self.height:
+            self.start_row = self.current_row  - self.height + 1
 
     @property
     def height(self):
+        if not self._height:
+            return False
         return self._height
     @height.setter
     def height(self, h):
@@ -390,6 +371,25 @@ class Menu(CursesElement):
             raise TypeError("Start_x must be of type 'int'")
 
     @property
+    def scrollbar(self) -> bool:
+        return self._scrollbar
+    @scrollbar.setter
+    def scrollbar(self, b: bool):
+        if not isinstance(b, bool):
+            raise TypeError(f"scrollbar must be boolean not {type(b).__name__}")
+        self._scrollbar = b
+
+    @property
+    def scrollarrows(self) -> bool:
+        return self._scrollarrows
+    @scrollarrows.setter
+    def scrollarrows(self, b: bool):
+        if not isinstance(b, bool):
+            raise TypeError(
+                     f"scrollarrows must be boolean not {type(b).__name__}")
+        self._scrollarrows = b
+
+    @property
     def selected_item(self):
         return self._selected_item
     @selected_item.setter
@@ -403,6 +403,7 @@ class Menu(CursesElement):
     def set_current_row(self,text):
         for idx, item in enumerate(self.options):
             if text == item.text:
+                self.start_row = 0 # forces a recalc correctly in setter
                 self.current_row = idx
                 self.selected_item = item
                 return
@@ -413,9 +414,9 @@ class Menu(CursesElement):
         """
 
         if not self.height:
-            self.height = min(self.h-7, self.menu_len)
+            self.height = min([self.h-7,self.menu_len])
         if not self.width:
-            self.width = min(self.menu_max_w, self.w - 6)
+            self.width = min([self.menu_max_w,self.w-6])
         if not self.start_y:
             self.start_y = (self.h - self.height)//2
         if not self.start_x:
@@ -457,18 +458,38 @@ class Menu(CursesElement):
                 self.addcolorstr(self.CONTROL_COLOR|curses.A_BOLD,
                                  _y, _x, arrow)
                 self.addcolorstr(color, _y, x,text)
+                if self.scrollbar:
+                    if self.start_row > 0 or (self.start_row+self.height)\
+                                         < self.menu_len:
+                        self.addcolorstr(self.CONTROL_COLOR, _y, x-3, "│")
+                        if _y - self.start_y == 0:
+                            self.addcolorstr(self.CONTROL_COLOR, _y, x-3, "┯")
+                        elif _y - self.start_y == self.height-1:
+                            self.addcolorstr(self.CONTROL_COLOR, _y, x-3, "┷")
+                        else:
+                            self.addcolorstr(self.CONTROL_COLOR, _y, x-3, "│")
+
             else:
                 color = self.colors[item.color]\
                           if item.color else self.MENU_COLOR
                 color = self.item_bold(item, color)
                 self.addcolorstr(color, _y, x, item_text)
+                if self.scrollbar:
+                    if self.start_row > 0 or (self.start_row+self.height)\
+                                         < self.menu_len:
+                        if _y - self.start_y == 0:
+                            self.addcolorstr(self.DIM, _y, x-3, "┯")
+                        elif _y - self.start_y == self.height-1:
+                            self.addcolorstr(self.DIM, _y, x-3, "┷")
+                        else:
+                            self.addcolorstr(self.DIM, _y, x-3, "│")
 
-
-        if self.start_row+self.height < self.menu_len:
-            self.addcolorstr(self.DIM,
-                             y+(self.height-1),x-3, "▼")
-        if self.start_row > 0:
-            self.addcolorstr(self.DIM, y, x-3, "▲")
+        if self.scrollarrows:
+            if self.start_row > 0:
+                self.addcolorstr(self.DIM, y, x-3, self.u_scroll_arrow)
+            if self.start_row+self.height < self.menu_len:
+                self.addcolorstr(self.DIM,
+                                 y+(self.height-1),x-3,self.d_scroll_arrow)
 
 class CursesDisplay(CursesElement):
     def __init__(self, config=None):
@@ -512,8 +533,9 @@ class CursesDisplay(CursesElement):
     @property
     def color_menu(self):
         if not self._color_menu:
-            colors = ['cyan','green','yellow','magenta','red','blue']
-            self._color_menu = Menu(config=self.config, stdscr=self.stdscr)
+            colors = self.colors
+            self._color_menu = Menu(config=self.config, stdscr=self.stdscr,
+                                    width=15, height=5)
             self._color_menu.options = [Option(c,c,color=c) for c in colors]
         return self._color_menu
 
@@ -725,7 +747,7 @@ class CursesDisplay(CursesElement):
                 "Restart 'scr' required for updated Default Sessions in menu.")
 
         self.stdscr.refresh()
-        self.tp_editor = textpad.Textbox(self.tp)
+        self.tp_editor = curses.textpad.Textbox(self.tp)
         curses.curs_set(1)  # show cursor
         self.tp_editor.edit(self.editor_input)
         curses.curs_set(0)  # Hide cursor
@@ -800,13 +822,13 @@ class CursesDisplay(CursesElement):
             self.disp_saved = False
 
         # color options display
-        y, x = uly+1, ulx+24
+        y, x = uly+2, ulx+24
         if self.settings_color:
-            self.addcolorstr(self.colors['white'],y,x,"Select Color")
+            self.addcolorstr(self.colors['white'],y,x-1,"Select Color")
             self.color_menu.start_y = y+1
             self.color_menu.start_x = x
             self.color_menu.width = 15
-            self.color_menu.height = 6
+            self.color_menu.height = 5
             self.color_menu.draw_menu()
 
     def draw_color_setting(self, y, x, key, setting, label, color, cname):

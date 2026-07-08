@@ -1018,8 +1018,8 @@ class CursesDisplay(CursesElement):
                 ret = "settings" # the textpad does some of the screen
                                  # refreshing and input here
             if isinstance(ret, Option):
-                ret.action.run()
-                self.exit_curses()
+                self.exit_curses(terminate=False)
+                ret.action.run(terminate=True)
             if ret in self.modes:
                 self.mode = ret
 

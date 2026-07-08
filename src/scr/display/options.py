@@ -68,11 +68,11 @@ class Option:
     def color(self, c):
         self._color = c
 
-    def run(self):
+    def run(self, terminate=True):
         if self.action:
-            self.action.run()
+            self.action.run(terminate=terminate)
         else:
-            raise Exception("repr(self) has no action.")
+            raise Exception(f"{repr(self)} has no action.")
 
     @classmethod
     def control(cls, text, action, menu_char):

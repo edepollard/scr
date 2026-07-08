@@ -60,14 +60,15 @@ class Screen():
     def is_active(self):
         return True if self.pid else False
 
-    def run(self):
+    def run(self, terminate=True):
         """Attach to existing screen session or create new one,
            then exit process."""
         sesstr = f"{self.pid}.{self.name}" if self.pid else self.name
         scr_opt = '-dr' if self.is_active else '-S'
         scr_cmd = ['screen',scr_opt,self.longName]
         subprocess.run(scr_cmd)
-        sys.exit()
+        if terminate:
+            sys.exit()
 
 
 class Screens():
